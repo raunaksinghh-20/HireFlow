@@ -1,0 +1,17 @@
+fastapi[all]
+uvicorn[standard]
+sqlalchemy[asyncio]
+asyncpg
+alembic
+pydantic-settings
+pydantic[email]
+redis[hiredis]
+google-genai
+deepgram-sdk
+PyMuPDF
+PyPDF2
+python-multipart
+pwdlib[bcrypt]
+python-jose[cryptography]
+python-dotenv
+psycopg2-binary
