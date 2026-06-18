@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, BarChart3, MessageSquare, FileText } from 'lucide-react';
+import { ArrowLeft, Upload, BarChart3, MessageSquare, FileText, ChevronRight } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import toast from 'react-hot-toast';
 import { getJob } from '../api/jobs';
 import { getResumes, uploadResume } from '../api/resumes';
-import { scoreResume, rankCandidates } from '../api/ats';
+import { scoreResume } from '../api/ats';
 
 export default function JobDetailPage() {
   const { jobId } = useParams();
@@ -70,86 +70,128 @@ export default function JobDetailPage() {
     }
   };
 
-  if (loading) return <div className="page-container"><div className="glass-card h-64 animate-pulse" /></div>;
+  const getScoreClass = (score) => {
+    if (score >= 70) return 'score-high';
+    if (score >= 50) return 'score-mid';
+    return 'score-low';
+  };
+
+  if (loading) return <div className="page-container"><div className="skeleton h-64" /></div>;
 
   return (
     <div className="page-container animate-fade-in">
-      {/* Header */}
-      <button onClick={() => navigate('/jobs')} className="btn-ghost mb-4 flex items-center gap-2">
+      {/* Back Button */}
+      <button onClick={() => navigate('/jobs')} className="btn-ghost mb-6 -ml-3">
         <ArrowLeft className="w-4 h-4" /> Back to Jobs
       </button>
 
-      <div className="glass-card mb-6">
-        <h1 className="text-2xl font-bold text-white">{job?.title}</h1>
-        <div className="flex items-center gap-4 mt-2 text-surface-400 text-sm">
-          {job?.company && <span>{job.company}</span>}
-          <span>{job?.experience_years || 0}+ years required</span>
+      {/* Job Header */}
+      <div className="card mb-8">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <p className="mono-label mb-2">Position</p>
+            <h1 className="font-display text-card-heading text-primary">{job?.title}</h1>
+            <div className="flex items-center gap-4 mt-2 text-caption text-muted">
+              {job?.company && <span className="font-medium text-ink">{job.company}</span>}
+              <span>{job?.experience_years || 0}+ years required</span>
+            </div>
+          </div>
         </div>
+
         {(job?.required_skills || []).length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {job.required_skills.map((s) => <span key={s} className="badge-info">{s}</span>)}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {job.required_skills.map((s) => (
+              <span key={s} className="skill-chip">{s}</span>
+            ))}
           </div>
         )}
-        <p className="text-surface-300 mt-4 text-sm leading-relaxed line-clamp-4">{job?.description}</p>
+
+        <div className="section-divider my-4" />
+        <p className="text-body text-body-muted leading-relaxed line-clamp-4">{job?.description}</p>
       </div>
 
       {/* Upload Section */}
-      <div className="glass-card mb-6">
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <Upload className="w-5 h-5 text-brand-400" /> Upload Resume
-        </h2>
-        <div className="mb-3">
-          <label className="label">Candidate Name *</label>
-          <input className="input-field max-w-md" placeholder="John Doe" value={candidateName} onChange={(e) => setCandidateName(e.target.value)} />
+      <div className="card mb-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-9 h-9 bg-action-blue rounded-sm flex items-center justify-center">
+            <Upload className="w-4 h-4 text-on-dark" />
+          </div>
+          <div>
+            <h2 className="heading-feature">Upload Resume</h2>
+            <p className="text-caption text-muted">Add a candidate&apos;s PDF resume for AI screening.</p>
+          </div>
         </div>
+
+        <div className="mb-4">
+          <label className="label">Candidate Name *</label>
+          <input
+            className="input-field max-w-md"
+            placeholder="John Doe"
+            value={candidateName}
+            onChange={(e) => setCandidateName(e.target.value)}
+          />
+        </div>
+
         <div
           {...getRootProps()}
-          className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
-            isDragActive ? 'border-brand-500 bg-brand-500/5' : 'border-surface-700 hover:border-surface-500'
+          className={`border-2 border-dashed rounded-sm p-10 text-center cursor-pointer transition-all ${
+            isDragActive ? 'border-action-blue bg-pale-blue' : 'border-hairline hover:border-muted hover:bg-soft-stone/30'
           }`}
         >
           <input {...getInputProps()} />
           {uploading ? (
-            <div className="flex items-center justify-center gap-2 text-surface-400">
-              <div className="w-5 h-5 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin" />
+            <div className="flex items-center justify-center gap-3 text-muted">
+              <div className="w-5 h-5 border-2 border-muted/30 border-t-muted rounded-full animate-spin" />
               Uploading...
             </div>
           ) : (
             <>
-              <FileText className="w-8 h-8 mx-auto text-surface-500 mb-2" />
-              <p className="text-surface-400">
+              <FileText className="w-8 h-8 mx-auto text-muted mb-3 opacity-50" />
+              <p className="text-body text-muted">
                 {isDragActive ? 'Drop the PDF here' : 'Drag & drop a PDF resume, or click to select'}
               </p>
+              <p className="text-micro text-muted/60 mt-1">PDF files only, max 10MB</p>
             </>
           )}
         </div>
       </div>
 
-      {/* Candidates */}
-      <div className="glass-card">
-        <h2 className="text-lg font-semibold text-white mb-4">Candidates ({resumes.length})</h2>
+      {/* Candidates Table */}
+      <div className="card p-0">
+        <div className="px-6 py-5 border-b border-hairline">
+          <h2 className="heading-feature">Candidates ({resumes.length})</h2>
+        </div>
+
         {resumes.length === 0 ? (
-          <p className="text-surface-500 text-center py-8">No candidates yet. Upload resumes above.</p>
+          <div className="empty-state px-6">
+            <FileText className="empty-state-icon" />
+            <p className="text-body text-muted">No candidates yet. Upload resumes above.</p>
+          </div>
         ) : (
-          <div className="space-y-3">
+          <div className="divide-y divide-hairline">
             {resumes.map((r) => (
-              <div key={r.id} className="flex items-center justify-between p-4 rounded-xl bg-surface-800/50 border border-surface-700/50 hover:border-surface-600 transition-all">
-                <div>
-                  <div className="font-medium text-surface-200">{r.candidate_name}</div>
-                  <div className="text-sm text-surface-500">{r.file_name} · {r.file_size_kb}KB</div>
+              <div key={r.id} className="flex items-center justify-between px-6 py-4 hover:bg-soft-stone/30 transition-colors">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-ink">{r.candidate_name}</div>
+                  <div className="text-caption text-muted mt-0.5">
+                    {r.file_name} · {r.file_size_kb}KB
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 ml-4 shrink-0">
                   {r.ats_score !== null && r.ats_score !== undefined ? (
                     <>
-                      <div className={`text-lg font-bold ${r.ats_score >= 70 ? 'text-emerald-400' : r.ats_score >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
+                      <div className={`font-display text-feature-heading font-medium ${getScoreClass(r.ats_score)}`}>
                         {r.ats_score}%
                       </div>
-                      <Link to={`/interviews?resumeId=${r.id}&jobId=${jobId}`} className="btn-primary text-sm py-1.5 px-4 flex items-center gap-1">
+                      <Link
+                        to={`/interviews?resumeId=${r.id}&jobId=${jobId}`}
+                        className="btn-primary text-sm py-2 px-4"
+                      >
                         <MessageSquare className="w-3.5 h-3.5" /> Interview
                       </Link>
                     </>
                   ) : (
-                    <button onClick={() => handleScore(r.id)} className="btn-secondary text-sm py-1.5 px-4 flex items-center gap-1">
+                    <button onClick={() => handleScore(r.id)} className="btn-pill-outline">
                       <BarChart3 className="w-3.5 h-3.5" /> Score
                     </button>
                   )}

@@ -9,13 +9,13 @@ export default function InterviewPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const chatEndRef = useRef(null);
-  
+
   // UI States
   const [answer, setAnswer] = useState('');
   const [turnCount, setTurnCount] = useState(1);
   const [starting, setStarting] = useState(false);
-  const [mode, setMode] = useState('text'); // 'text' | 'voice'
-  
+  const [mode, setMode] = useState('text');
+
   // Audio Recording States
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
@@ -79,7 +79,6 @@ export default function InterviewPage() {
       startSession(data);
       setTurnCount(1);
       toast.success('Interview started!');
-      
       if (mode === 'voice' && data.audio_base64) {
         playAudioBase64(data.audio_base64);
       }
@@ -120,7 +119,7 @@ export default function InterviewPage() {
     }
   };
 
-  // ----- Voice Recording Logic -----
+  // Voice Recording Logic
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -129,14 +128,12 @@ export default function InterviewPage() {
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
 
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        stream.getTracks().forEach(track => track.stop()); // stop mic
+        stream.getTracks().forEach(track => track.stop());
         await submitVoiceData(audioBlob);
       };
 
@@ -162,17 +159,11 @@ export default function InterviewPage() {
     const formData = new FormData();
     formData.append('session_token', sessionToken);
     formData.append('turn', turnCount);
-    // Give a dummy filename, fastapi backend just reads bytes
     formData.append('audio_file', audioBlob, 'answer.webm');
 
     try {
-      // Add a dummy answer to the UI immediately
-      addAnswer("(Voice answer submitted...)");
-
+      addAnswer('(Voice answer submitted...)');
       const { data } = await submitVoiceAnswer(formData);
-      
-      // Update the dummy answer with transcribed text (not perfectly supported by current store, but processResponse handles the rest)
-      // Since processResponse doesn't update candidate answers, we just rely on the history
       processResponse(data);
       setTurnCount((prev) => prev + 1);
 
@@ -181,7 +172,6 @@ export default function InterviewPage() {
       } else if (data.audio_base64) {
         playAudioBase64(data.audio_base64);
       }
-
       if (data.transcribed_text) {
         toast.success(`Transcribed: "${data.transcribed_text.substring(0, 30)}..."`);
       }
@@ -192,49 +182,59 @@ export default function InterviewPage() {
     }
   };
 
-  const getDifficultyColor = () => {
-    if (difficultyLevel <= 2) return 'text-emerald-400';
-    if (difficultyLevel <= 3) return 'text-amber-400';
-    return 'text-red-400';
+  const getDifficultyLabel = () => {
+    const labels = ['', 'Easy', 'Medium', 'Challenging', 'Hard', 'Expert'];
+    return labels[difficultyLevel] || `Level ${difficultyLevel}`;
   };
 
-  // No session yet
+  const getDifficultyColor = () => {
+    if (difficultyLevel <= 2) return 'text-success';
+    if (difficultyLevel <= 3) return 'text-warning';
+    return 'text-error';
+  };
+
+  // No session yet — start screen
   if (!sessionToken) {
     return (
       <div className="page-container animate-fade-in">
-        <div className="glass-card text-center py-16 max-w-lg mx-auto">
-          <Bot className="w-16 h-16 mx-auto text-brand-400 mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-2">AI Interview</h1>
-          <p className="text-surface-400 mb-6">
+        <div className="max-w-lg mx-auto text-center pt-12">
+          <div className="w-16 h-16 bg-deep-green rounded-lg mx-auto mb-6 flex items-center justify-center">
+            <Bot className="w-8 h-8 text-on-dark" />
+          </div>
+          <h1 className="font-display text-card-heading text-primary mb-3">AI Interview</h1>
+          <p className="text-body text-muted mb-8">
             {resumeId && jobId
-              ? 'Ready to start the adaptive AI interview.'
+              ? 'Start an adaptive AI interview that adjusts question difficulty based on candidate responses.'
               : 'Select a candidate from a job page to start an interview.'}
           </p>
-          
+
           {resumeId && jobId && (
             <div className="space-y-6">
-              <div className="flex justify-center gap-4 bg-surface-800 p-2 rounded-xl border border-surface-700 w-fit mx-auto">
+              {/* Mode Toggle */}
+              <div className="inline-flex p-1 bg-soft-stone rounded-sm">
                 <button
                   onClick={() => setMode('text')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    mode === 'text' ? 'bg-surface-700 text-white' : 'text-surface-400 hover:text-surface-200'
+                  className={`px-5 py-2.5 rounded-xs text-btn font-medium transition-colors ${
+                    mode === 'text' ? 'bg-canvas text-primary shadow-sm' : 'text-muted hover:text-ink'
                   }`}
                 >
                   Text Mode
                 </button>
                 <button
                   onClick={() => setMode('voice')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    mode === 'voice' ? 'bg-brand-600 text-white' : 'text-surface-400 hover:text-surface-200'
+                  className={`px-5 py-2.5 rounded-xs text-btn font-medium transition-colors ${
+                    mode === 'voice' ? 'bg-canvas text-primary shadow-sm' : 'text-muted hover:text-ink'
                   }`}
                 >
                   Voice Mode
                 </button>
               </div>
 
-              <button onClick={handleStart} disabled={starting} className="btn-primary w-full max-w-xs">
-                {starting ? 'Starting...' : `Start ${mode === 'voice' ? 'Voice' : ''} Interview`}
-              </button>
+              <div>
+                <button onClick={handleStart} disabled={starting} className="btn-primary">
+                  {starting ? 'Starting...' : `Start ${mode === 'voice' ? 'Voice ' : ''}Interview`}
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -242,57 +242,69 @@ export default function InterviewPage() {
     );
   }
 
+  // Active interview
   return (
-    <div className="page-container animate-fade-in max-w-4xl mx-auto flex flex-col h-[calc(100vh-8rem)]">
-      {/* Header */}
-      <div className="glass-card mb-4 flex items-center justify-between shrink-0">
+    <div className="page-container animate-fade-in max-w-4xl mx-auto flex flex-col" style={{ height: 'calc(100vh - 10rem)' }}>
+      {/* Interview Header */}
+      <div className="card mb-4 shrink-0 flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold text-white">{candidateName}</h1>
+            <h1 className="heading-feature">{candidateName}</h1>
             {mode === 'voice' && (
-              <span className="badge-primary flex items-center gap-1 bg-brand-500/20 text-brand-400 border-brand-500/30">
-                <Mic className="w-3 h-3" /> Voice Mode
+              <span className="badge-coral flex items-center gap-1">
+                <Mic className="w-3 h-3" /> Voice
               </span>
             )}
             {isPlaying && (
-              <span className="flex items-center gap-1 text-xs text-brand-400 animate-pulse">
+              <span className="flex items-center gap-1 text-micro text-action-blue animate-pulse">
                 <Volume2 className="w-4 h-4" /> Speaking...
               </span>
             )}
           </div>
-          <p className="text-sm text-surface-400">{jobTitle}</p>
+          <p className="text-caption text-muted mt-0.5">{jobTitle}</p>
         </div>
-        <div className="flex items-center gap-4 text-sm">
-          <span className={`font-mono font-bold ${getDifficultyColor()}`}>
-            Level {difficultyLevel}/5
-          </span>
-          <span className="text-surface-500">{questionsRemaining} Qs left</span>
+        <div className="flex items-center gap-5 text-caption">
+          <div className="text-right">
+            <span className={`font-mono font-semibold ${getDifficultyColor()}`}>
+              {getDifficultyLabel()}
+            </span>
+            <div className="text-micro text-muted">Difficulty</div>
+          </div>
+          <div className="text-right">
+            <span className="font-mono font-semibold text-ink">{questionsRemaining}</span>
+            <div className="text-micro text-muted">Remaining</div>
+          </div>
           {isComplete && <span className="badge-success">Complete</span>}
         </div>
       </div>
 
-      {/* Chat */}
-      <div className="glass-card mb-4 flex-1 overflow-y-auto">
-        <div className="space-y-4">
+      {/* Chat Area */}
+      <div className="card mb-4 flex-1 overflow-y-auto p-6">
+        <div className="space-y-5">
           {turns.map((turn, idx) => (
             <div key={idx} className={`flex gap-3 ${turn.role === 'candidate' ? 'flex-row-reverse' : ''}`}>
               <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${
                 turn.role === 'interviewer'
-                  ? 'bg-gradient-to-br from-brand-500 to-brand-600'
-                  : 'bg-gradient-to-br from-emerald-500 to-emerald-600'
+                  ? 'bg-deep-green'
+                  : 'bg-action-blue'
               }`}>
-                {turn.role === 'interviewer' ? <Bot className="w-4 h-4 text-white" /> : <User className="w-4 h-4 text-white" />}
+                {turn.role === 'interviewer'
+                  ? <Bot className="w-4 h-4 text-on-dark" />
+                  : <User className="w-4 h-4 text-on-dark" />
+                }
               </div>
-              <div className={`max-w-[75%] rounded-2xl px-4 py-3 ${
+              <div className={`max-w-[75%] rounded-lg px-5 py-3.5 ${
                 turn.role === 'interviewer'
-                  ? 'bg-surface-800 border border-surface-700'
-                  : 'bg-brand-600/20 border border-brand-500/20'
+                  ? 'bg-soft-stone border border-hairline'
+                  : 'bg-pale-blue border border-action-blue/10'
               }`}>
-                <p className={`text-sm leading-relaxed ${turn.content === '(Voice answer submitted...)' ? 'text-surface-500 italic' : 'text-surface-200'}`}>
+                <p className={`text-body leading-relaxed ${
+                  turn.content === '(Voice answer submitted...)' ? 'text-muted italic' : 'text-ink'
+                }`}>
                   {turn.content}
                 </p>
                 {turn.type && (
-                  <span className="inline-block mt-2 text-xs text-surface-500 bg-surface-800/50 rounded-full px-2 py-0.5">
+                  <span className="inline-block mt-2 text-micro text-muted bg-canvas rounded-full px-2.5 py-0.5 border border-hairline">
                     {turn.type.replace('_', ' ')}
                   </span>
                 )}
@@ -301,11 +313,11 @@ export default function InterviewPage() {
           ))}
           {isLoading && (
             <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center">
-                <Bot className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 rounded-full bg-deep-green flex items-center justify-center">
+                <Bot className="w-4 h-4 text-on-dark" />
               </div>
-              <div className="bg-surface-800 border border-surface-700 rounded-2xl px-4 py-3 flex items-center gap-2 text-surface-400 text-sm">
-                <Loader2 className="w-4 h-4 text-brand-400 animate-spin" />
+              <div className="bg-soft-stone border border-hairline rounded-lg px-5 py-3.5 flex items-center gap-2 text-muted text-body">
+                <Loader2 className="w-4 h-4 text-deep-green animate-spin" />
                 {mode === 'voice' ? 'Processing audio...' : 'Thinking...'}
               </div>
             </div>
@@ -314,27 +326,27 @@ export default function InterviewPage() {
         </div>
       </div>
 
-      {/* Input */}
+      {/* Input Area */}
       {isComplete ? (
-        <div className="glass-card text-center shrink-0">
-          <CheckCircle className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
-          <p className="text-surface-300 mb-4">Interview complete!</p>
+        <div className="card text-center shrink-0">
+          <CheckCircle className="w-10 h-10 text-success mx-auto mb-3" />
+          <p className="text-body text-muted mb-4">Interview complete!</p>
           <button onClick={() => navigate(`/evaluation?interviewId=${interviewId}`)} className="btn-primary">
             View Evaluation
           </button>
         </div>
       ) : (
-        <div className="glass-card shrink-0 flex items-center gap-3">
+        <div className="card shrink-0 flex items-center gap-3">
           {mode === 'voice' && (
             <button
               type="button"
               onClick={isRecording ? stopRecording : startRecording}
               disabled={isLoading || isPlaying}
               className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-                isRecording 
-                  ? 'bg-red-500 hover:bg-red-600 animate-pulse text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]' 
-                  : 'bg-surface-800 border border-surface-600 text-surface-300 hover:text-white hover:border-brand-500'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+                isRecording
+                  ? 'bg-error hover:bg-error/90 text-white shadow-[0_0_15px_rgba(179,0,0,0.3)]'
+                  : 'bg-soft-stone border border-hairline text-muted hover:text-ink hover:border-primary'
+              } disabled:opacity-40 disabled:cursor-not-allowed`}
             >
               {isRecording ? <Square className="w-5 h-5 fill-current" /> : <Mic className="w-5 h-5" />}
             </button>
@@ -349,9 +361,9 @@ export default function InterviewPage() {
               disabled={isLoading || isRecording || isPlaying}
               autoFocus
             />
-            <button 
-              type="submit" 
-              disabled={isLoading || isRecording || isPlaying || !answer.trim()} 
+            <button
+              type="submit"
+              disabled={isLoading || isRecording || isPlaying || !answer.trim()}
               className="btn-primary px-4"
             >
               <Send className="w-5 h-5" />

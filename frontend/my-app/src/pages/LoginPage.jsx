@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, ArrowRight, BarChart3 } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { loginUser } from '../api/auth';
 import useAuthStore from '../store/authStore';
@@ -33,29 +33,61 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute inset-0 bg-gradient-to-br from-brand-950/50 via-surface-950 to-surface-950" />
-      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-brand-600/10 rounded-full blur-3xl" />
-
-      <div className="relative w-full max-w-md animate-fade-in">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/25">
-              <BarChart3 className="w-6 h-6 text-white" />
+    <div className="min-h-screen bg-canvas flex">
+      {/* Left side — branding band */}
+      <div className="hidden lg:flex lg:w-1/2 bg-deep-green relative overflow-hidden flex-col justify-between p-12">
+        <div>
+          <div className="flex items-center gap-3 mb-20">
+            <div className="w-10 h-10 bg-white/10 rounded-sm flex items-center justify-center">
+              <span className="text-on-dark font-display font-bold text-lg">H</span>
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-surface-300 bg-clip-text text-transparent">
-              HireFlow AI
-            </h1>
+            <span className="font-display text-2xl font-semibold text-on-dark tracking-tight">
+              HireFlow
+            </span>
           </div>
-          <p className="text-surface-400">AI-Powered Recruitment Platform</p>
+
+          <h1 className="font-display text-section-heading text-on-dark mb-6">
+            Hire smarter.<br />
+            Interview faster.
+          </h1>
+          <p className="text-body-large text-on-dark/70 max-w-md leading-relaxed">
+            AI-powered resume screening, adaptive interviews, and structured candidate
+            evaluations — all in one platform built for modern recruiting teams.
+          </p>
         </div>
 
-        {/* Login Card */}
-        <div className="glass-card">
-          <h2 className="text-xl font-semibold text-white mb-6">Sign in to your account</h2>
+        <div className="flex items-center gap-8 text-on-dark/40 text-micro">
+          <span>Resume Screening</span>
+          <span className="w-1 h-1 rounded-full bg-on-dark/20" />
+          <span>AI Interviews</span>
+          <span className="w-1 h-1 rounded-full bg-on-dark/20" />
+          <span>Smart Evaluation</span>
+        </div>
+
+        {/* Decorative elements */}
+        <div className="absolute -bottom-20 -right-20 w-80 h-80 border border-white/5 rounded-full" />
+        <div className="absolute -bottom-10 -right-10 w-60 h-60 border border-white/5 rounded-full" />
+      </div>
+
+      {/* Right side — form */}
+      <div className="flex-1 flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md animate-fade-in">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex items-center gap-3 mb-10">
+            <div className="w-10 h-10 bg-primary rounded-sm flex items-center justify-center">
+              <span className="text-on-primary font-display font-bold text-lg">H</span>
+            </div>
+            <span className="font-display text-2xl font-semibold text-primary tracking-tight">
+              HireFlow
+            </span>
+          </div>
+
+          <div className="mb-8">
+            <h2 className="font-display text-card-heading text-primary mb-2">Sign in</h2>
+            <p className="text-body text-muted">
+              Enter your credentials to access your recruitment dashboard.
+            </p>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -68,6 +100,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoFocus
               />
             </div>
 
@@ -86,7 +119,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-500 hover:text-surface-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -96,7 +129,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full flex items-center justify-center gap-2"
+              className="btn-primary w-full"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -108,9 +141,9 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-surface-400">
+          <div className="mt-8 text-center text-caption text-muted">
             Don&apos;t have an account?{' '}
-            <Link to="/register" className="text-brand-400 hover:text-brand-300 font-medium transition-colors">
+            <Link to="/register" className="text-action-blue hover:underline font-medium transition-colors">
               Create one
             </Link>
           </div>

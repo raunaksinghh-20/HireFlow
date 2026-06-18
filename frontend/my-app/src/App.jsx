@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import Sidebar from './components/layout/Sidebar';
 import Navbar from './components/layout/Navbar';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
@@ -15,14 +14,18 @@ import EvaluationPage from './pages/EvaluationPage';
 
 function AppLayout() {
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <div className="flex-1 ml-64">
-        <Navbar />
-        <main>
-          <Outlet />
-        </main>
-      </div>
+    <div className="min-h-screen bg-canvas flex flex-col">
+      <Navbar />
+      <main className="flex-1">
+        <Outlet />
+      </main>
+      {/* Minimal footer */}
+      <footer className="border-t border-hairline py-6">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8 flex items-center justify-between">
+          <span className="text-micro text-muted">© 2026 HireFlow AI</span>
+          <span className="text-micro text-muted">AI-Powered Recruitment</span>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -34,13 +37,15 @@ export default function App() {
         position="top-right"
         toastOptions={{
           style: {
-            background: '#1e293b',
-            color: '#e2e8f0',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '12px',
+            background: '#17171c',
+            color: '#ffffff',
+            border: '1px solid #d9d9dd',
+            borderRadius: '8px',
+            fontSize: '14px',
+            fontFamily: 'Inter, sans-serif',
           },
-          success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
-          error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
+          success: { iconTheme: { primary: '#059669', secondary: '#fff' } },
+          error: { iconTheme: { primary: '#b30000', secondary: '#fff' } },
         }}
       />
       <Routes>

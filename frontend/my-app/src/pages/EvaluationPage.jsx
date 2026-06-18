@@ -9,19 +9,19 @@ import toast from 'react-hot-toast';
 import { generateEvaluation } from '../api/interviews';
 
 const DIMENSION_COLORS = {
-  Technical: '#6366f1',
-  Communication: '#10b981',
-  Consistency: '#f59e0b',
-  Depth: '#8b5cf6',
-  Confidence: '#ef4444',
+  Technical: '#003c33',
+  Communication: '#1863dc',
+  Consistency: '#d97706',
+  Depth: '#9b60aa',
+  Confidence: '#ff7759',
 };
 
 const HIRE_BADGES = {
-  strong_yes: { label: 'Strong Yes', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', icon: CheckCircle },
-  yes: { label: 'Yes', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', icon: CheckCircle },
-  maybe: { label: 'Maybe', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20', icon: HelpCircle },
-  no: { label: 'No', color: 'bg-red-500/10 text-red-400 border-red-500/20', icon: XCircle },
-  strong_no: { label: 'Strong No', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: XCircle },
+  strong_yes: { label: 'Strong Yes', cls: 'text-success', bg: 'rgba(5,150,105,0.08)', border: '1px solid rgba(5,150,105,0.2)', icon: CheckCircle },
+  yes: { label: 'Yes', cls: 'text-success', bg: 'rgba(5,150,105,0.05)', border: '1px solid rgba(5,150,105,0.12)', icon: CheckCircle },
+  maybe: { label: 'Maybe', cls: 'text-warning', bg: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.15)', icon: HelpCircle },
+  no: { label: 'No', cls: 'text-error', bg: 'rgba(179,0,0,0.08)', border: '1px solid rgba(179,0,0,0.15)', icon: XCircle },
+  strong_no: { label: 'Strong No', cls: 'text-error', bg: 'rgba(179,0,0,0.12)', border: '1px solid rgba(179,0,0,0.2)', icon: XCircle },
 };
 
 export default function EvaluationPage() {
@@ -43,15 +43,21 @@ export default function EvaluationPage() {
     return (
       <div className="page-container flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-brand-400 animate-spin mx-auto mb-4" />
-          <p className="text-surface-400">Generating AI evaluation...</p>
+          <Loader2 className="w-12 h-12 text-deep-green animate-spin mx-auto mb-4" />
+          <p className="text-body text-muted">Generating AI evaluation...</p>
         </div>
       </div>
     );
   }
 
   if (!evaluation) {
-    return <div className="page-container"><div className="glass-card text-center py-16 text-surface-500">No evaluation available</div></div>;
+    return (
+      <div className="page-container">
+        <div className="card empty-state">
+          <p className="text-body text-muted">No evaluation available.</p>
+        </div>
+      </div>
+    );
   }
 
   const radarData = [
@@ -70,51 +76,62 @@ export default function EvaluationPage() {
   return (
     <div className="page-container animate-fade-in max-w-6xl mx-auto">
       {/* Header */}
-      <div className="glass-card mb-6 flex items-center justify-between">
+      <div className="card mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">{evaluation.candidate_name}</h1>
-          <p className="text-surface-400">{evaluation.job_title}</p>
+          <p className="mono-label mb-2">Evaluation</p>
+          <h1 className="font-display text-card-heading text-primary">{evaluation.candidate_name}</h1>
+          <p className="text-caption text-muted mt-1">{evaluation.job_title}</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-5">
           <div className="text-right">
-            <div className="text-3xl font-bold bg-gradient-to-r from-brand-400 to-brand-300 bg-clip-text text-transparent">
+            <div className="font-display text-section-heading text-primary">
               {evaluation.overall_score}
             </div>
-            <div className="text-xs text-surface-500">Overall Score</div>
+            <div className="text-micro text-muted">Overall Score</div>
           </div>
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${hireBadge.color}`}>
+          <div
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-pill ${hireBadge.cls}`}
+            style={{ background: hireBadge.bg, border: hireBadge.border }}
+          >
             <HireIcon className="w-5 h-5" />
-            <span className="font-semibold">{hireBadge.label}</span>
+            <span className="font-medium text-btn">{hireBadge.label}</span>
           </div>
         </div>
       </div>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Radar Chart */}
-        <div className="glass-card">
-          <h2 className="text-lg font-semibold text-white mb-4">Skill Dimensions</h2>
+        <div className="card">
+          <h2 className="heading-feature mb-5">Skill Dimensions</h2>
           <ResponsiveContainer width="100%" height={300}>
             <RadarChart data={radarData}>
-              <PolarGrid stroke="#334155" />
-              <PolarAngleAxis dataKey="dimension" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-              <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 10 }} />
-              <Radar dataKey="score" stroke="#6366f1" fill="#6366f1" fillOpacity={0.2} strokeWidth={2} />
+              <PolarGrid stroke="#d9d9dd" />
+              <PolarAngleAxis dataKey="dimension" tick={{ fill: '#616161', fontSize: 12, fontFamily: 'Inter' }} />
+              <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: '#93939f', fontSize: 10 }} />
+              <Radar dataKey="score" stroke="#003c33" fill="#003c33" fillOpacity={0.12} strokeWidth={2} />
             </RadarChart>
           </ResponsiveContainer>
         </div>
 
         {/* Bar Chart */}
-        <div className="glass-card">
-          <h2 className="text-lg font-semibold text-white mb-4">Score Breakdown</h2>
+        <div className="card">
+          <h2 className="heading-feature mb-5">Score Breakdown</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={barData} layout="vertical">
-              <XAxis type="number" domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 11 }} />
-              <YAxis type="category" dataKey="dimension" width={110} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+              <XAxis type="number" domain={[0, 100]} tick={{ fill: '#93939f', fontSize: 11, fontFamily: 'Inter' }} />
+              <YAxis type="category" dataKey="dimension" width={110} tick={{ fill: '#616161', fontSize: 12, fontFamily: 'Inter' }} />
               <Tooltip
-                contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, color: '#e2e8f0' }}
+                contentStyle={{
+                  background: '#ffffff',
+                  border: '1px solid #d9d9dd',
+                  borderRadius: 8,
+                  color: '#212121',
+                  fontSize: 13,
+                  fontFamily: 'Inter',
+                }}
               />
-              <Bar dataKey="score" radius={[0, 6, 6, 0]} barSize={24}>
+              <Bar dataKey="score" radius={[0, 4, 4, 0]} barSize={24}>
                 {barData.map((entry, index) => (
                   <Cell key={index} fill={entry.fill} />
                 ))}
@@ -125,32 +142,32 @@ export default function EvaluationPage() {
       </div>
 
       {/* Strengths & Red Flags */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="glass-card">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <Award className="w-5 h-5 text-emerald-400" /> Strengths
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="card">
+          <h2 className="heading-feature flex items-center gap-2 mb-5">
+            <Award className="w-5 h-5 text-success" /> Strengths
           </h2>
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {(evaluation.strengths || []).map((s, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-surface-300">
-                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <li key={i} className="flex items-start gap-3 text-body text-ink">
+                <CheckCircle className="w-4 h-4 text-success flex-shrink-0 mt-1" />
                 {s}
               </li>
             ))}
           </ul>
         </div>
 
-        <div className="glass-card">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-red-400" /> Red Flags
+        <div className="card">
+          <h2 className="heading-feature flex items-center gap-2 mb-5">
+            <AlertTriangle className="w-5 h-5 text-error" /> Red Flags
           </h2>
           {(evaluation.red_flags || []).length === 0 ? (
-            <p className="text-surface-500 text-sm">No red flags identified.</p>
+            <p className="text-body text-muted">No red flags identified.</p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {evaluation.red_flags.map((f, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-surface-300">
-                  <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                <li key={i} className="flex items-start gap-3 text-body text-ink">
+                  <AlertTriangle className="w-4 h-4 text-error flex-shrink-0 mt-1" />
                   {f}
                 </li>
               ))}
@@ -161,18 +178,17 @@ export default function EvaluationPage() {
 
       {/* Skill Gap Confirmation */}
       {Object.keys(evaluation.skill_gap_confirmed || {}).length > 0 && (
-        <div className="glass-card mb-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Skill Gap Verification</h2>
+        <div className="card mb-8">
+          <h2 className="heading-feature mb-5">Skill Gap Verification</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {Object.entries(evaluation.skill_gap_confirmed).map(([skill, status]) => (
-              <div key={skill} className={`p-3 rounded-xl border text-center ${
-                status === 'denied' ? 'bg-emerald-500/5 border-emerald-500/20' :
-                status === 'confirmed' ? 'bg-red-500/5 border-red-500/20' :
-                'bg-surface-800/50 border-surface-700'
-              }`}>
-                <div className="font-medium text-sm text-surface-200">{skill}</div>
-                <div className={`text-xs mt-1 ${
-                  status === 'denied' ? 'text-emerald-400' : status === 'confirmed' ? 'text-red-400' : 'text-surface-500'
+              <div key={skill} className="p-4 rounded-sm text-center" style={{
+                background: status === 'denied' ? 'rgba(5,150,105,0.03)' : status === 'confirmed' ? 'rgba(179,0,0,0.03)' : '#eeece7',
+                border: status === 'denied' ? '1px solid rgba(5,150,105,0.15)' : status === 'confirmed' ? '1px solid rgba(179,0,0,0.15)' : '1px solid #d9d9dd',
+              }}>
+                <div className="font-medium text-caption text-ink">{skill}</div>
+                <div className={`text-micro mt-1 ${
+                  status === 'denied' ? 'text-success' : status === 'confirmed' ? 'text-error' : 'text-muted'
                 }`}>
                   {status === 'denied' ? '✓ Has skill' : status === 'confirmed' ? '✗ Gap confirmed' : '? Unclear'}
                 </div>
@@ -183,9 +199,11 @@ export default function EvaluationPage() {
       )}
 
       {/* Summary Report */}
-      <div className="glass-card">
-        <h2 className="text-lg font-semibold text-white mb-4">Summary Report</h2>
-        <p className="text-surface-300 leading-relaxed whitespace-pre-line">{evaluation.summary_report}</p>
+      <div className="card">
+        <h2 className="heading-feature mb-5">Summary Report</h2>
+        <p className="text-body leading-relaxed whitespace-pre-line" style={{ color: '#616161' }}>
+          {evaluation.summary_report}
+        </p>
       </div>
     </div>
   );

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { FileText, BarChart3 } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 import { getJobs } from '../api/jobs';
 import { rankCandidates } from '../api/ats';
 
@@ -21,53 +20,87 @@ export default function CandidatesPage() {
       .finally(() => setLoading(false));
   }, [selectedJob]);
 
+  const getScoreClass = (score) => {
+    if (score >= 70) return 'score-high';
+    if (score >= 50) return 'score-mid';
+    return 'score-low';
+  };
+
   return (
     <div className="page-container animate-fade-in">
-      <h1 className="section-title mb-1">Candidates</h1>
-      <p className="section-subtitle mb-6">View ranked candidates by job position</p>
+      {/* Header */}
+      <div className="mb-8">
+        <p className="mono-label mb-2">Screening</p>
+        <h1 className="font-display text-card-heading text-primary">Candidate Rankings</h1>
+        <p className="text-body text-muted mt-1">View AI-scored and ranked candidates by position.</p>
+      </div>
 
-      <div className="glass-card mb-6">
-        <label className="label">Select Job</label>
-        <select className="input-field max-w-md" value={selectedJob} onChange={(e) => setSelectedJob(e.target.value)}>
+      {/* Job Selector */}
+      <div className="card mb-8">
+        <label className="label">Select Position</label>
+        <select
+          className="select-field max-w-md"
+          value={selectedJob}
+          onChange={(e) => setSelectedJob(e.target.value)}
+        >
           <option value="">Choose a job...</option>
-          {jobs.map((j) => <option key={j.id} value={j.id}>{j.title} {j.company ? `— ${j.company}` : ''}</option>)}
+          {jobs.map((j) => (
+            <option key={j.id} value={j.id}>
+              {j.title} {j.company ? `— ${j.company}` : ''}
+            </option>
+          ))}
         </select>
       </div>
 
+      {/* Rankings */}
       {selectedJob && (
-        <div className="glass-card">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-brand-400" /> Ranked Candidates
-          </h2>
+        <div className="card p-0">
+          <div className="px-6 py-5 border-b border-hairline flex items-center gap-3">
+            <div className="w-9 h-9 bg-deep-green rounded-sm flex items-center justify-center">
+              <BarChart3 className="w-4 h-4 text-on-dark" />
+            </div>
+            <h2 className="heading-feature">Ranked Candidates</h2>
+          </div>
+
           {loading ? (
-            <div className="space-y-3">{[1,2,3].map((i) => <div key={i} className="h-16 bg-surface-800/50 rounded-xl animate-pulse" />)}</div>
+            <div className="p-6 space-y-3">
+              {[1, 2, 3].map((i) => <div key={i} className="skeleton h-16" />)}
+            </div>
           ) : candidates.length === 0 ? (
-            <p className="text-surface-500 text-center py-8">No scored candidates for this job. Upload resumes and run ATS scoring first.</p>
+            <div className="empty-state px-6">
+              <BarChart3 className="empty-state-icon" />
+              <p className="text-body text-muted">
+                No scored candidates for this job.<br />
+                Upload resumes and run ATS scoring first.
+              </p>
+            </div>
           ) : (
-            <div className="space-y-3">
+            <div className="divide-y divide-hairline">
               {candidates.map((c) => (
-                <div key={c.resume_id} className="flex items-center justify-between p-4 rounded-xl bg-surface-800/50 border border-surface-700/50">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg ${
-                      c.rank <= 3 ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-white' : 'bg-surface-700 text-surface-300'
+                <div key={c.resume_id} className="flex items-center justify-between px-6 py-4 hover:bg-soft-stone/30 transition-colors">
+                  <div className="flex items-center gap-4 min-w-0 flex-1">
+                    <div className={`w-10 h-10 rounded-sm flex items-center justify-center font-display text-lg font-semibold shrink-0 ${
+                      c.rank <= 3
+                        ? 'bg-coral text-on-dark'
+                        : 'bg-soft-stone text-ink'
                     }`}>
                       {c.rank}
                     </div>
-                    <div>
-                      <div className="font-medium text-surface-200">{c.candidate_name}</div>
-                      <div className="text-sm text-surface-500">
+                    <div className="min-w-0">
+                      <div className="font-medium text-ink truncate">{c.candidate_name}</div>
+                      <div className="text-caption text-muted mt-0.5">
                         {(c.matched_skills || []).slice(0, 3).join(', ')}
-                        {(c.skill_gaps || []).length > 0 && <span className="text-red-400"> · {c.skill_gaps.length} gaps</span>}
+                        {(c.skill_gaps || []).length > 0 && (
+                          <span className="text-error"> · {c.skill_gaps.length} gap{c.skill_gaps.length > 1 ? 's' : ''}</span>
+                        )}
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <div className={`text-xl font-bold ${c.ats_score >= 70 ? 'text-emerald-400' : c.ats_score >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
-                        {c.ats_score}%
-                      </div>
-                      <div className="text-xs text-surface-500">ATS Score</div>
+                  <div className="text-right shrink-0 ml-4">
+                    <div className={`font-display text-feature-heading font-medium ${getScoreClass(c.ats_score)}`}>
+                      {c.ats_score}%
                     </div>
+                    <div className="text-micro text-muted">ATS Score</div>
                   </div>
                 </div>
               ))}
