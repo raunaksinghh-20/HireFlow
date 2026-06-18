@@ -248,3 +248,52 @@ class EvaluationOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ══════════════════════════════════════════════════════════════════
+# Scheduled Interview Schemas
+# ══════════════════════════════════════════════════════════════════
+
+class ScheduledInterviewCreate(BaseModel):
+    job_id: UUID
+    candidate_name: str
+    candidate_email: str
+    scheduled_time: datetime
+
+
+class ScheduledInterviewOut(BaseModel):
+    id: UUID
+    job_id: UUID
+    candidate_name: str
+    candidate_email: str
+    scheduled_time: datetime
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ══════════════════════════════════════════════════════════════════
+# Analytics Schemas
+# ══════════════════════════════════════════════════════════════════
+
+class SkillGapCount(BaseModel):
+    skill: str
+    count: int
+
+
+class RecommendationCount(BaseModel):
+    recommendation: str
+    count: int
+
+
+class AnalyticsOverviewOut(BaseModel):
+    total_jobs: int
+    total_candidates: int
+    total_interviews: int
+    average_ats_score: float
+    average_interview_score: float
+    recommendation_distribution: List[RecommendationCount]
+    skill_gap_distribution: List[SkillGapCount]
+

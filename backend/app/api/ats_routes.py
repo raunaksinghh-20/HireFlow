@@ -49,6 +49,21 @@ async def score_resume(
     resume.ranking_score = scoring["ranking_score"]
     await db.flush()
 
+    # Trigger email notification
+    from app.services.notification_service import send_screening_completed_email
+    if resume.candidate_email:
+        try:
+            send_screening_completed_email(
+                candidate_email=resume.candidate_email,
+                candidate_name=resume.candidate_name,
+                job_title=job.title,
+                ats_score=scoring["ats_score"]
+            )
+        except Exception as e:
+            # Prevent email failure from breaking API response
+            import logging
+            logging.getLogger(__name__).error(f"Failed to send email: {e}")
+
     return ATSScoreResponse(
         resume_id=resume.id,
         candidate_name=resume.candidate_name,

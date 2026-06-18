@@ -17,7 +17,9 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await loginUser({ email, password });
+      const response = await loginUser({ email, password });
+      console.log("Login response:", response);
+      const { data } = response;
       login(data.access_token, {
         id: data.user_id,
         email: data.email,
@@ -26,6 +28,7 @@ export default function LoginPage() {
       toast.success('Welcome back!');
       navigate('/dashboard');
     } catch (err) {
+      console.error("Login error:", err);
       toast.error(err.response?.data?.detail || 'Login failed');
     } finally {
       setLoading(false);
@@ -52,7 +55,7 @@ export default function LoginPage() {
           </h1>
           <p className="text-body-large text-on-dark/70 max-w-md leading-relaxed">
             AI-powered resume screening, adaptive interviews, and structured candidate
-            evaluations — all in one platform built for modern recruiting teams.
+            evaluations, all in one platform built for modern recruiting teams.
           </p>
         </div>
 

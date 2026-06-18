@@ -476,6 +476,20 @@ async def create_evaluation(
     db.add(evaluation)
     await db.flush()
 
+    # Trigger recruiter notification
+    from app.services.notification_service import send_interview_completed_email
+    if current_user.email:
+        try:
+            send_interview_completed_email(
+                recruiter_email=current_user.email,
+                candidate_name=resume.candidate_name if resume else "Candidate",
+                job_title=job.title if job else "Position",
+                overall_score=evaluation.overall_score
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Failed to send email to recruiter: {e}")
+
     return EvaluationOut(
         evaluation_id=evaluation.id,
         interview_id=interview.id,

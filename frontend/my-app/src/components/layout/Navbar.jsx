@@ -7,6 +7,8 @@ import {
   LogOut,
   Menu,
   X,
+  Calendar,
+  BarChart3,
 } from 'lucide-react';
 import { useState } from 'react';
 import useAuthStore from '../../store/authStore';
@@ -16,6 +18,8 @@ const navLinks = [
   { path: '/jobs', label: 'Jobs', icon: Briefcase },
   { path: '/candidates', label: 'Candidates', icon: Users },
   { path: '/interviews', label: 'Interviews', icon: MessageSquare },
+  { path: '/calendar', label: 'Calendar', icon: Calendar },
+  { path: '/analytics', label: 'Analytics', icon: BarChart3 },
 ];
 
 export default function Navbar() {

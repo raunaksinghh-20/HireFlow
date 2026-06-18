@@ -18,6 +18,15 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     DEEPGRAM_API_KEY: str = ""
 
+    # ── Email Settings ───────────────────────────────────────────
+    SENDGRID_API_KEY: str = ""
+    RESEND_API_KEY: str = ""
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = "noreply@hireflow.ai"
+
     # ── File Storage ──────────────────────────────────────────────
     UPLOAD_DIR: str = "uploads/resumes"
     MAX_RESUME_SIZE_MB: int = 10

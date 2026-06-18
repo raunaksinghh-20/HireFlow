@@ -11,6 +11,8 @@ import CandidatesPage from './pages/CandidatesPage';
 import InterviewPage from './pages/InterviewPage';
 import TranscriptPage from './pages/TranscriptPage';
 import EvaluationPage from './pages/EvaluationPage';
+import CalendarPage from './pages/CalendarPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 
 function AppLayout() {
   return (
@@ -68,6 +70,8 @@ export default function App() {
           <Route path="/interviews" element={<InterviewPage />} />
           <Route path="/transcript/:interviewId" element={<TranscriptPage />} />
           <Route path="/evaluation" element={<EvaluationPage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
         </Route>
 
         {/* Default redirect */}
