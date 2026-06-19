@@ -34,6 +34,43 @@ def _parse_json_response(text: str) -> dict:
     return {}
 
 
+def _build_insufficient_progress_evaluation(transcript: Transcript, resume: Resume) -> dict | None:
+    """Return a deterministic evaluation when there is no answer evidence."""
+    turns = transcript.turns or []
+    candidate_turns = [
+        turn for turn in turns
+        if turn.get("role") == "candidate" and (turn.get("content") or "").strip()
+    ]
+
+    if candidate_turns:
+        return None
+
+    skill_gaps = resume.skill_gaps or []
+    summary = (
+        "The interview was ended before the candidate answered any questions, so there is no interview "
+        "evidence to assess technical ability, communication, consistency, depth, or confidence.\n\n"
+        "Because no responses were provided, the evaluation cannot validate resume claims or confirm job-fit "
+        "signals from the interview. ATS and resume context alone are not treated as interview performance.\n\n"
+        "Recommendation: do not advance based on this interview result. The candidate should retake the "
+        "interview or complete a manual assessment if the recruiting team still wants to proceed."
+    )
+
+    return {
+        "technical_score": 0,
+        "communication_score": 0,
+        "consistency_score": 0,
+        "depth_score": 0,
+        "confidence_score": 0,
+        "overall_score": 0.0,
+        "strengths": [],
+        "red_flags": ["Interview ended before the candidate answered any questions."],
+        "skill_gap_confirmed": {skill: "unclear" for skill in skill_gaps},
+        "hire_recommendation": "strong_no",
+        "summary_report": summary,
+        "raw_llm_response": "Deterministic insufficient-progress evaluation; no candidate answers were present.",
+    }
+
+
 async def generate_evaluation(
     interview: Interview,
     transcript: Transcript,
@@ -46,6 +83,10 @@ async def generate_evaluation(
     2. Synthesizes findings using a Consensus Aggregator.
     Returns the final unified evaluation dictionary.
     """
+    insufficient_progress = _build_insufficient_progress_evaluation(transcript, resume)
+    if insufficient_progress:
+        return insufficient_progress
+
     # Build core context
     context = build_evaluation_context(
         resume_text=resume.extracted_text or "",

@@ -195,6 +195,16 @@ class SubmitAnswerResponse(BaseModel):
     audio_base64: Optional[str] = None
 
 
+class QuitInterviewRequest(BaseModel):
+    session_token: str
+
+
+class QuitInterviewResponse(BaseModel):
+    interview_id: UUID
+    interview_complete: bool = True
+    message: str = "Interview ended. Generate the candidate evaluation from current progress."
+
+
 # ══════════════════════════════════════════════════════════════════
 # Transcript Schemas
 # ══════════════════════════════════════════════════════════════════
@@ -382,6 +392,7 @@ class CandidateAnalyticsOut(BaseModel):
 
 class InterviewOut(BaseModel):
     id: UUID
+    resume_id: UUID
     job_id: UUID
     job_title: str
     company: str
@@ -395,6 +406,5 @@ class InterviewOut(BaseModel):
 
     class Config:
         from_attributes = True
-
 
 
