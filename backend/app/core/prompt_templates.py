@@ -1,6 +1,5 @@
-# ══════════════════════════════════════════════════════════════════
 # AI Prompt Templates — Versioned, Single Source of Truth
-# ══════════════════════════════════════════════════════════════════
+
 # Never inline prompts in service files. All LLM prompts live here.
 
 FIRST_QUESTION_PROMPT = """You are an expert technical interviewer conducting a structured job interview.
