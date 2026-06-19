@@ -87,7 +87,6 @@ pnpm-debug.log*
 chroma/
 vectorstore/
 faiss_index/
-models/
 cache/
 
 # =========================
