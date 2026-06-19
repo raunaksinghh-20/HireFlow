@@ -11,11 +11,14 @@ from app.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
-# Ensure logs directory exists
-LOGS_DIR = Path("/Users/raunak/Desktop/HireFlow-AI/backend/logs")
-LOGS_DIR.mkdir(exist_ok=True, parents=True)
-LOG_FILE_PATH = LOGS_DIR / "email_notifications.log"
+# backend folder
+BASE_DIR = Path(__file__).resolve().parents[2]
 
+# backend/logs
+LOGS_DIR = BASE_DIR / "logs"
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
+LOG_FILE_PATH = LOGS_DIR / "email_notifications.log"
 
 def _log_email_locally(to_email: str, subject: str, text_content: str, html_content: str):
     """Fallback: Log email contents to a local log file for developer debugging."""
