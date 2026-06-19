@@ -8,7 +8,7 @@ from app.api.dependencies import get_current_user
 from app.models.db_models import User
 from app.schemas.all_schemas import JobCreate, JobUpdate, JobOut
 from app.services.job_service import (
-    create_job, get_jobs, get_job, update_job, delete_job,
+    create_job, get_jobs, get_job, update_job, delete_job, get_job_by_id,
 )
 
 router = APIRouter(tags=["Jobs"])
@@ -38,7 +38,12 @@ async def list_jobs(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List all active jobs for current user."""
+    """List all active jobs (all active jobs for candidates, or owned jobs for recruiters/HR)."""
+    if current_user.role == "candidate":
+        from sqlalchemy import select
+        from app.models.db_models import Job
+        result = await db.execute(select(Job).where(Job.is_active == True).order_by(Job.created_at.desc()))
+        return result.scalars().all()
     return await get_jobs(db, current_user.id)
 
 
@@ -49,6 +54,8 @@ async def get_job_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """Get a single job."""
+    if current_user.role == "candidate":
+        return await get_job_by_id(db, job_id)
     return await get_job(db, job_id, current_user.id)
 
 

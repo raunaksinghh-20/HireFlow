@@ -6,7 +6,7 @@ import { registerUser } from '../api/auth';
 import useAuthStore from '../store/authStore';
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({ full_name: '', email: '', password: '', confirm: '' });
+  const [form, setForm] = useState({ full_name: '', email: '', password: '', confirm: '', role: 'candidate' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -30,11 +30,13 @@ export default function RegisterPage() {
         email: form.email,
         password: form.password,
         full_name: form.full_name,
+        role: form.role,
       });
       login(data.access_token, {
         id: data.user_id,
         email: data.email,
         full_name: data.full_name,
+        role: data.role,
       });
       toast.success('Account created successfully!');
       navigate('/dashboard');
@@ -122,6 +124,14 @@ export default function RegisterPage() {
             <div>
               <label className="label" htmlFor="reg-confirm">Confirm Password</label>
               <input id="reg-confirm" name="confirm" type="password" className="input-field" placeholder="••••••••" value={form.confirm} onChange={handleChange} required />
+            </div>
+            <div>
+              <label className="label" htmlFor="reg-role">I am a</label>
+              <select id="reg-role" name="role" className="input-field" value={form.role} onChange={handleChange} required>
+                <option value="candidate">Candidate (Job Seeker)</option>
+                <option value="recruiter">Recruiter</option>
+                <option value="hr">HR Specialist</option>
+              </select>
             </div>
 
             <button type="submit" disabled={loading} className="btn-primary w-full">

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { BarChart3 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { getJobs } from '../api/jobs';
-import { rankCandidates } from '../api/ats';
+import { rankCandidates, scoreResume } from '../api/ats';
+import { updateApplicationStatusByResume } from '../api/applications';
 
 export default function CandidatesPage() {
   const [jobs, setJobs] = useState([]);
@@ -9,7 +11,7 @@ export default function CandidatesPage() {
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { getJobs().then((r) => setJobs(r.data)).catch(() => {}); }, []);
+  useEffect(() => { getJobs().then((r) => setJobs(r.data)).catch(() => { }); }, []);
 
   useEffect(() => {
     if (!selectedJob) { setCandidates([]); return; }
@@ -70,8 +72,8 @@ export default function CandidatesPage() {
             <div className="empty-state px-6">
               <BarChart3 className="empty-state-icon" />
               <p className="text-body text-muted">
-                No scored candidates for this job.<br />
-                Upload resumes and run ATS scoring first.
+                No candidates for this job yet.<br />
+                Candidates need to apply first.
               </p>
             </div>
           ) : (
@@ -79,11 +81,10 @@ export default function CandidatesPage() {
               {candidates.map((c) => (
                 <div key={c.resume_id} className="flex items-center justify-between px-6 py-4 hover:bg-soft-stone/30 transition-colors">
                   <div className="flex items-center gap-4 min-w-0 flex-1">
-                    <div className={`w-10 h-10 rounded-sm flex items-center justify-center font-display text-lg font-semibold shrink-0 ${
-                      c.rank <= 3
-                        ? 'bg-coral text-on-dark'
-                        : 'bg-soft-stone text-ink'
-                    }`}>
+                    <div className={`w-10 h-10 rounded-sm flex items-center justify-center font-display text-lg font-semibold shrink-0 ${c.rank <= 3
+                      ? 'bg-coral text-on-dark'
+                      : 'bg-soft-stone text-ink'
+                      }`}>
                       {c.rank}
                     </div>
                     <div className="min-w-0">
@@ -97,10 +98,49 @@ export default function CandidatesPage() {
                     </div>
                   </div>
                   <div className="text-right shrink-0 ml-4">
-                    <div className={`font-display text-feature-heading font-medium ${getScoreClass(c.ats_score)}`}>
-                      {c.ats_score}%
-                    </div>
-                    <div className="text-micro text-muted">ATS Score</div>
+                    {c.ats_score !== null && c.ats_score !== undefined ? (
+                      <div className="flex items-center gap-6">
+                        <div className="text-right">
+                          <div className={`font-display text-feature-heading font-medium ${getScoreClass(c.ats_score)}`}>
+                            {c.ats_score}%
+                          </div>
+                          <div className="text-micro text-muted">ATS Score</div>
+                        </div>
+                        <button
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            const id = toast.loading('Scheduling interview...');
+                            try {
+                              await updateApplicationStatusByResume(c.resume_id, { status: 'interview_scheduled' });
+                              toast.success('Interview scheduled for candidate!', { id });
+                            } catch (err) {
+                              toast.error('Failed to schedule interview', { id });
+                            }
+                          }}
+                          className="btn-primary text-sm py-2 px-4 whitespace-nowrap"
+                        >
+                          Approve & Schedule
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          const id = toast.loading('Scoring candidate...');
+                          try {
+                            await scoreResume(c.resume_id);
+                            toast.success('ATS score calculated!', { id });
+                            // Refresh list
+                            const r = await rankCandidates(selectedJob);
+                            setCandidates(r.data);
+                          } catch (e) {
+                            toast.error('Failed to score candidate', { id });
+                          }
+                        }}
+                        className="btn-pill-outline"
+                      >
+                        Score Now
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

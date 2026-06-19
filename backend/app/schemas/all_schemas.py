@@ -12,6 +12,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=6)
     full_name: str = Field(min_length=1)
+    role: Optional[str] = "candidate"  # candidate | recruiter | hr
 
 
 class LoginRequest(BaseModel):
@@ -26,6 +27,7 @@ class TokenResponse(BaseModel):
     user_id: UUID
     email: str
     full_name: str
+    role: str
 
 
 class UserOut(BaseModel):
@@ -296,4 +298,103 @@ class AnalyticsOverviewOut(BaseModel):
     average_interview_score: float
     recommendation_distribution: List[RecommendationCount]
     skill_gap_distribution: List[SkillGapCount]
+
+
+# ══════════════════════════════════════════════════════════════════
+# Profile Schemas
+# ══════════════════════════════════════════════════════════════════
+
+class UserProfileUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    bio: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    experience_years: Optional[int] = None
+    skills: Optional[List[str]] = None
+
+
+class UserProfileOut(BaseModel):
+    id: UUID
+    email: str
+    full_name: str
+    role: str
+    profile_picture: Optional[str] = None
+    phone: Optional[str] = None
+    bio: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    experience_years: int = 0
+    skills: List[str] = []
+
+    class Config:
+        from_attributes = True
+
+
+# ══════════════════════════════════════════════════════════════════
+# Application Schemas
+# ══════════════════════════════════════════════════════════════════
+
+class ApplicationCreate(BaseModel):
+    job_id: UUID
+    resume_id: Optional[UUID] = None
+
+
+class ApplicationUpdateStatus(BaseModel):
+    status: str
+    rejection_reason: Optional[str] = None
+
+
+class ApplicationOut(BaseModel):
+    id: UUID
+    candidate_id: UUID
+    job_id: UUID
+    resume_id: Optional[UUID] = None
+    status: str
+    ats_score: Optional[int] = None
+    rejection_reason: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    job_title: Optional[str] = None
+    company: Optional[str] = None
+    candidate_name: Optional[str] = None
+    candidate_email: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ══════════════════════════════════════════════════════════════════
+# Candidate Analytics Schemas
+# ══════════════════════════════════════════════════════════════════
+
+class CandidateAnalyticsOut(BaseModel):
+    total_applications: int
+    shortlisted_count: int
+    rejected_count: int
+    interviewed_count: int
+    average_interview_score: float
+    application_status_distribution: Dict[str, int]
+    interview_scores_trend: List[Dict[str, Any]]
+
+
+# ══════════════════════════════════════════════════════════════════
+# Interview Listing Schema
+# ══════════════════════════════════════════════════════════════════
+
+class InterviewOut(BaseModel):
+    id: UUID
+    job_id: UUID
+    job_title: str
+    company: str
+    candidate_name: str
+    candidate_email: str
+    status: str
+    mode: str
+    created_at: datetime
+    evaluation_score: Optional[float] = None
+    evaluation: Optional[EvaluationOut] = None
+
+    class Config:
+        from_attributes = True
+
+
 

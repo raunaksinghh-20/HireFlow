@@ -56,3 +56,40 @@ def delete_file(file_path: str) -> None:
             os.remove(file_path)
     except OSError:
         pass
+
+
+def get_avatar_dir() -> Path:
+    """Get and ensure the avatar upload directory exists."""
+    avatar_dir = Path(settings.AVATAR_DIR)
+    avatar_dir.mkdir(parents=True, exist_ok=True)
+    return avatar_dir
+
+
+async def save_avatar_file(file: UploadFile) -> str:
+    """
+    Save an uploaded avatar file to disk.
+    Returns the file path.
+    """
+    if file.content_type not in ("image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"):
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Only PNG, JPEG, WEBP, and GIF images are supported",
+        )
+
+    content = await file.read()
+    max_bytes = 5 * 1024 * 1024  # 5MB max
+    if len(content) > max_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Profile picture exceeds maximum size of 5MB",
+        )
+
+    avatar_dir = get_avatar_dir()
+    unique_name = f"{uuid.uuid4()}_{file.filename}"
+    file_path = avatar_dir / unique_name
+
+    with open(file_path, "wb") as f:
+        f.write(content)
+
+    return f"/uploads/avatars/{unique_name}"
+

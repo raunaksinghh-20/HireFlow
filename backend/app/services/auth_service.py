@@ -6,7 +6,7 @@ from app.models.db_models import User
 from app.core.security import hash_password, verify_password
 
 
-async def register_user(db: AsyncSession, email: str, password: str, full_name: str) -> User:
+async def register_user(db: AsyncSession, email: str, password: str, full_name: str, role: str = "candidate") -> User:
     """Create a new user. Raises 409 if email already exists."""
     result = await db.execute(select(User).where(User.email == email))
     existing = result.scalars().first()
@@ -20,6 +20,7 @@ async def register_user(db: AsyncSession, email: str, password: str, full_name: 
         email=email,
         hashed_password=hash_password(password),
         full_name=full_name,
+        role=role,
     )
     db.add(user)
     await db.flush()

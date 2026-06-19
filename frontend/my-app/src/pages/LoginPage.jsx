@@ -24,6 +24,7 @@ export default function LoginPage() {
         id: data.user_id,
         email: data.email,
         full_name: data.full_name,
+        role: data.role,
       });
       toast.success('Welcome back!');
       navigate('/dashboard');

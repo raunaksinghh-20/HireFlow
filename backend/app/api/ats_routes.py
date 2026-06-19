@@ -87,8 +87,8 @@ async def rank_candidates(
     """Return all scored candidates for a job ranked by ranking_score."""
     result = await db.execute(
         select(Resume)
-        .where(Resume.job_id == job_id, Resume.ats_score.isnot(None))
-        .order_by(Resume.ranking_score.desc())
+        .where(Resume.job_id == job_id)
+        .order_by(Resume.ranking_score.desc().nulls_last())
     )
     resumes = result.scalars().all()
 

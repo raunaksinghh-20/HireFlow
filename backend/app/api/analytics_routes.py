@@ -8,10 +8,10 @@ from sqlalchemy import select, func
 
 from app.config.database import get_db
 from app.api.dependencies import get_current_user
-from app.models.db_models import User, Job, Resume, Interview, Evaluation
-from app.schemas.all_schemas import AnalyticsOverviewOut, SkillGapCount, RecommendationCount
+from app.models.db_models import User, Job, Resume, Interview, Evaluation, Application
+from app.schemas.all_schemas import AnalyticsOverviewOut, SkillGapCount, RecommendationCount, CandidateAnalyticsOut
 
-router = APIRouter(tags=["HR Dashboard & Analytics"])
+router = APIRouter(tags=["HR & Candidate Analytics"])
 
 
 @router.get("/analytics/overview", response_model=AnalyticsOverviewOut)
@@ -75,3 +75,71 @@ async def get_analytics_overview(
         recommendation_distribution=recommendation_distribution,
         skill_gap_distribution=skill_gap_distribution,
     )
+
+
+@router.get("/analytics/candidate", response_model=CandidateAnalyticsOut)
+async def get_candidate_analytics(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Retrieve personal performance analytics for a candidate."""
+    # 1. Total applications
+    app_result = await db.execute(
+        select(Application).where(Application.candidate_id == current_user.id)
+    )
+    applications = app_result.scalars().all()
+
+    total_apps = len(applications)
+
+    # Statuses
+    shortlisted = 0
+    rejected = 0
+    interviewed = 0
+
+    status_counts = Counter()
+    for app in applications:
+        status_counts[app.status] += 1
+        if app.status in ("approved", "interview_scheduled", "interviewed", "selected"):
+            shortlisted += 1
+        if app.status == "rejected":
+            rejected += 1
+        if app.status in ("interviewed", "selected"):
+            interviewed += 1
+
+    # 2. Interview scores and trends
+    query = (
+        select(Evaluation.overall_score, Interview.created_at, Job.title)
+        .join(Interview, Evaluation.interview_id == Interview.id)
+        .join(Job, Interview.job_id == Job.id)
+        .join(Resume, Interview.resume_id == Resume.id)
+        .where(
+            (Resume.uploaded_by == current_user.id) |
+            (Resume.candidate_email == current_user.email)
+        )
+        .order_by(Interview.created_at.asc())
+    )
+    eval_res = await db.execute(query)
+    eval_rows = eval_res.all()
+
+    interview_scores_trend = []
+    total_score = 0.0
+    for score, created_at, title in eval_rows:
+        total_score += score
+        interview_scores_trend.append({
+            "date": created_at.strftime("%Y-%m-%d"),
+            "score": round(score, 1),
+            "job_title": title
+        })
+
+    avg_score = (total_score / len(eval_rows)) if eval_rows else 0.0
+
+    return CandidateAnalyticsOut(
+        total_applications=total_apps,
+        shortlisted_count=shortlisted,
+        rejected_count=rejected,
+        interviewed_count=len(eval_rows),
+        average_interview_score=round(avg_score, 1),
+        application_status_distribution=dict(status_counts),
+        interview_scores_trend=interview_scores_trend,
+    )
+

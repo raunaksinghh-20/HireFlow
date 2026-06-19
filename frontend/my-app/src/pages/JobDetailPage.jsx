@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { getJob } from '../api/jobs';
 import { getResumes, uploadResume } from '../api/resumes';
 import { scoreResume } from '../api/ats';
+import { updateApplicationStatusByResume } from '../api/applications';
 
 export default function JobDetailPage() {
   const { jobId } = useParams();
@@ -183,12 +184,29 @@ export default function JobDetailPage() {
                       <div className={`font-display text-feature-heading font-medium ${getScoreClass(r.ats_score)}`}>
                         {r.ats_score}%
                       </div>
-                      <Link
-                        to={`/interviews?resumeId=${r.id}&jobId=${jobId}`}
-                        className="btn-primary text-sm py-2 px-4"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" /> Interview
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            const id = toast.loading('Scheduling...');
+                            try {
+                              await updateApplicationStatusByResume(r.id, { status: 'interview_scheduled' });
+                              toast.success('Interview scheduled for candidate!', { id });
+                            } catch (err) {
+                              toast.error('Failed to schedule. Has candidate applied?', { id });
+                            }
+                          }}
+                          className="btn-primary text-sm py-2 px-4"
+                        >
+                          Approve & Schedule
+                        </button>
+                        <Link
+                          to={`/interviews?resumeId=${r.id}&jobId=${jobId}`}
+                          className="btn-secondary text-sm py-2 px-4"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" /> Start Manually
+                        </Link>
+                      </div>
                     </>
                   ) : (
                     <button onClick={() => handleScore(r.id)} className="btn-pill-outline">

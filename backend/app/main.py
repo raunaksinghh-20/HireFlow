@@ -17,8 +17,10 @@ from app.api.job_routes import router as job_router
 from app.api.resume_routes import router as resume_router
 from app.api.ats_routes import router as ats_router
 from app.api.interview_routes import router as interview_router
-from app.api.calendar_routes import router as calendar_router
 from app.api.analytics_routes import router as analytics_router
+from app.api.profile_routes import router as profile_router
+from app.api.calendar_routes import router as calendar_router
+from app.api.application_routes import router as application_router
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +36,21 @@ async def lifespan(app: FastAPI):
     logger.info("Database engine disposed")
 
 
+import os
+from fastapi.staticfiles import StaticFiles
+
 app = FastAPI(
     title="HireFlow AI",
     description="AI-Powered Recruitment Platform — Resume Screening & Adaptive Interview Assistant",
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# Ensure upload directories exist
+os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+os.makedirs(settings.AVATAR_DIR, exist_ok=True)
+
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # ── CORS ─────────────────────────────────────────────────────
 origins = [o.strip() for o in settings.ALLOWED_ORIGINS.split(",")]
@@ -59,6 +70,8 @@ app.include_router(ats_router, prefix="/api/v1")
 app.include_router(interview_router, prefix="/api/v1")
 app.include_router(calendar_router, prefix="/api/v1")
 app.include_router(analytics_router, prefix="/api/v1")
+app.include_router(profile_router, prefix="/api/v1")
+app.include_router(application_router, prefix="/api/v1")
 
 
 # ── Health Check ──────────────────────────────────────────────

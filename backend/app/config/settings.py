@@ -29,6 +29,7 @@ class Settings(BaseSettings):
 
     # ── File Storage ──────────────────────────────────────────────
     UPLOAD_DIR: str = "uploads/resumes"
+    AVATAR_DIR: str = "uploads/avatars"
     MAX_RESUME_SIZE_MB: int = 10
 
     # ── App ──────────────────────────────────────────────────────

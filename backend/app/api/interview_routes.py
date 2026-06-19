@@ -1,5 +1,6 @@
 from uuid import UUID
 from datetime import datetime, timezone
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +13,7 @@ from app.schemas.all_schemas import (
     StartInterviewRequest, StartInterviewResponse,
     SubmitAnswerRequest, SubmitAnswerResponse,
     TranscriptOut, TranscriptTurnOut,
-    EvaluationRequest, EvaluationOut,
+    EvaluationRequest, EvaluationOut, InterviewOut,
 )
 from app.services.interview_service import start_interview_session, process_answer, close_interview
 from app.services.transcript_service import save_turn, get_transcript, finalize_transcript, ensure_transcript
@@ -508,3 +509,126 @@ async def create_evaluation(
         summary_report=evaluation.summary_report or "",
         created_at=evaluation.created_at,
     )
+
+
+@router.get("/interviews/my-interviews", response_model=List[InterviewOut])
+async def get_my_interviews(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all interviews scheduled or attended by the current candidate."""
+    # Find interviews for resumes uploaded by the current candidate or matching their email
+    query = (
+        select(Interview, Job, Resume, Evaluation)
+        .join(Job, Interview.job_id == Job.id)
+        .join(Resume, Interview.resume_id == Resume.id)
+        .outerjoin(Evaluation, Interview.id == Evaluation.interview_id)
+        .where(
+            (Resume.uploaded_by == current_user.id) |
+            (Resume.candidate_email == current_user.email)
+        )
+        .order_by(Interview.created_at.desc())
+    )
+    result = await db.execute(query)
+    results = result.all()
+
+    out_list = []
+    for interview, job, resume, evaluation in results:
+        eval_out = None
+        if evaluation:
+            eval_out = EvaluationOut(
+                evaluation_id=evaluation.id,
+                interview_id=evaluation.interview_id,
+                candidate_name=resume.candidate_name,
+                job_title=job.title,
+                technical_score=evaluation.technical_score,
+                communication_score=evaluation.communication_score,
+                consistency_score=evaluation.consistency_score,
+                depth_score=evaluation.depth_score,
+                confidence_score=evaluation.confidence_score,
+                overall_score=evaluation.overall_score,
+                strengths=evaluation.strengths or [],
+                red_flags=evaluation.red_flags or [],
+                skill_gap_confirmed=evaluation.skill_gap_confirmed or {},
+                hire_recommendation=evaluation.hire_recommendation,
+                summary_report=evaluation.summary_report or "",
+                created_at=evaluation.created_at,
+            )
+
+        out_list.append(
+            InterviewOut(
+                id=interview.id,
+                job_id=interview.job_id,
+                job_title=job.title,
+                company=job.company or "Unknown",
+                candidate_name=resume.candidate_name,
+                candidate_email=resume.candidate_email or "",
+                status=interview.status,
+                mode=interview.mode,
+                created_at=interview.created_at,
+                evaluation_score=evaluation.overall_score if evaluation else None,
+                evaluation=eval_out,
+            )
+        )
+    return out_list
+
+
+@router.get("/interviews", response_model=List[InterviewOut])
+async def list_interviews(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all interviews. Non-candidates see all, candidates see their own."""
+    if current_user.role == "candidate":
+        # Redirect candidates to their specific route logic
+        return await get_my_interviews(current_user, db)
+
+    query = (
+        select(Interview, Job, Resume, Evaluation)
+        .join(Job, Interview.job_id == Job.id)
+        .join(Resume, Interview.resume_id == Resume.id)
+        .outerjoin(Evaluation, Interview.id == Evaluation.interview_id)
+        .order_by(Interview.created_at.desc())
+    )
+    result = await db.execute(query)
+    results = result.all()
+
+    out_list = []
+    for interview, job, resume, evaluation in results:
+        eval_out = None
+        if evaluation:
+            eval_out = EvaluationOut(
+                evaluation_id=evaluation.id,
+                interview_id=evaluation.interview_id,
+                candidate_name=resume.candidate_name,
+                job_title=job.title,
+                technical_score=evaluation.technical_score,
+                communication_score=evaluation.communication_score,
+                consistency_score=evaluation.consistency_score,
+                depth_score=evaluation.depth_score,
+                confidence_score=evaluation.confidence_score,
+                overall_score=evaluation.overall_score,
+                strengths=evaluation.strengths or [],
+                red_flags=evaluation.red_flags or [],
+                skill_gap_confirmed=evaluation.skill_gap_confirmed or {},
+                hire_recommendation=evaluation.hire_recommendation,
+                summary_report=evaluation.summary_report or "",
+                created_at=evaluation.created_at,
+            )
+
+        out_list.append(
+            InterviewOut(
+                id=interview.id,
+                job_id=interview.job_id,
+                job_title=job.title,
+                company=job.company or "Unknown",
+                candidate_name=resume.candidate_name,
+                candidate_email=resume.candidate_email or "",
+                status=interview.status,
+                mode=interview.mode,
+                created_at=interview.created_at,
+                evaluation_score=evaluation.overall_score if evaluation else None,
+                evaluation=eval_out,
+            )
+        )
+    return out_list

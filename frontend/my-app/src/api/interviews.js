@@ -10,3 +10,5 @@ export const submitVoiceAnswer = (formData) => api.post('/transcript/voice', for
 export const getTranscript = (interviewId) => api.get(`/transcript/${interviewId}`);
 export const generateEvaluation = (interviewId) =>
   api.post('/evaluation', { interview_id: interviewId });
+export const getMyInterviews = () => api.get('/interviews/my-interviews');
+export const listInterviews = () => api.get('/interviews');
