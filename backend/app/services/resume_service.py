@@ -45,6 +45,38 @@ def extract_text_from_pdf(file_path: str) -> str:
         )
     return text.strip()
 
+def extract_text_from_docx(file_path: str) -> str:
+    """
+    Extract text from a DOCX file using python-docx.
+    Raises ValueError if extraction fails or text is too short.
+    """
+    try:
+        import docx
+        doc = docx.Document(file_path)
+        text = "\n".join(para.text for para in doc.paragraphs)
+        if text.strip() and len(text.strip()) >= 50:
+            return text.strip()
+    except Exception:
+        pass
+
+    raise ValueError(
+        "Could not extract sufficient text from DOCX. "
+        "The file may be empty or corrupted."
+    )
+
+
+def extract_text_from_file(file_path: str, file_name: str) -> str:
+    """
+    Dispatcher: routes to the correct extractor based on file extension.
+    Supports .pdf and .docx.
+    """
+    lower_name = file_name.lower()
+    if lower_name.endswith(".pdf"):
+        return extract_text_from_pdf(file_path)
+    elif lower_name.endswith(".docx"):
+        return extract_text_from_docx(file_path)
+    else:
+        raise ValueError("Unsupported file type. Only .pdf and .docx are allowed.")
 
 def parse_resume_sections(text: str) -> dict:
     """

@@ -12,7 +12,7 @@ from app.config.settings import settings
 logger = logging.getLogger(__name__)
 
 # Ensure logs directory exists
-LOGS_DIR = Path("/Users/raunak/Desktop/HireFlow-AI/backend/logs")
+LOGS_DIR = Path(__file__).resolve().parent.parent.parent / "logs"
 LOGS_DIR.mkdir(exist_ok=True, parents=True)
 LOG_FILE_PATH = LOGS_DIR / "email_notifications.log"
 
