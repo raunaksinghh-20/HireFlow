@@ -56,12 +56,12 @@ export default function Navbar() {
     : null;
 
   return (
-    <header className="sticky top-0 z-50 bg-canvas/95 backdrop-blur-sm border-b border-hairline">
-      <div className="max-w-6xl mx-auto px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+    <header className="sticky top-0 z-50 px-4 pt-4">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between min-h-16 rounded-[2rem] border border-white/45 bg-white/25 px-5 py-3 backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-white/20">
           {/* Logo */}
           <Link to={role === 'candidate' ? '/candidate/dashboard' : '/dashboard'} className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 bg-primary rounded-sm flex items-center justify-center">
+            <div className="w-9 h-9 bg-primary rounded-2xl flex items-center justify-center shadow-sm">
               <span className="text-on-primary font-display font-bold text-sm">H</span>
             </div>
             <span className="font-display text-xl font-semibold text-primary tracking-tight hidden sm:block">
@@ -77,9 +77,9 @@ export default function Navbar() {
                 <Link
                   key={path}
                   to={path}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-sm text-btn font-medium transition-colors duration-150 ${isActive
-                      ? 'text-primary bg-soft-stone'
-                      : 'text-muted hover:text-ink hover:bg-soft-stone/50'
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-btn font-medium transition-all duration-150 ${isActive
+                      ? 'text-primary bg-white/40 ring-1 ring-white/50'
+                      : 'text-muted hover:text-ink hover:bg-white/25'
                     }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -94,10 +94,10 @@ export default function Navbar() {
             {/* Profile Link */}
             <Link
               to="/profile"
-              className="hidden sm:flex items-center gap-2 hover:bg-soft-stone/50 rounded-full px-2 py-1 transition-colors"
+              className="hidden sm:flex items-center gap-2 hover:bg-white/25 rounded-full px-2 py-1 transition-colors"
               title="Profile Settings"
             >
-              <div className="w-8 h-8 rounded-full overflow-hidden bg-deep-green flex items-center justify-center border border-primary/10">
+              <div className="w-9 h-9 rounded-full overflow-hidden bg-deep-green flex items-center justify-center border border-white shadow-sm">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt={user?.full_name} className="w-full h-full object-cover" />
                 ) : (
@@ -116,7 +116,7 @@ export default function Navbar() {
 
             <button
               onClick={handleLogout}
-              className="btn-ghost text-muted hover:text-error"
+              className="inline-flex items-center justify-center rounded-full bg-white/30 p-2.5 text-muted ring-1 ring-white/45 transition-all duration-200 hover:text-error hover:bg-white/45"
               title="Sign out"
             >
               <LogOut className="w-4 h-4" />
@@ -125,7 +125,7 @@ export default function Navbar() {
             {/* Mobile hamburger */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden btn-ghost"
+              className="md:hidden inline-flex items-center justify-center rounded-full bg-white/30 p-2.5 text-muted ring-1 ring-white/45 transition-all duration-200 hover:text-ink hover:bg-white/45"
             >
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -135,8 +135,8 @@ export default function Navbar() {
 
       {/* Mobile Nav */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-hairline bg-canvas animate-slide-down">
-          <nav className="max-w-6xl mx-auto px-6 py-4 space-y-1">
+        <div className="md:hidden max-w-6xl mx-auto mt-3 rounded-[1.75rem] border border-white/45 bg-white/25 backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-white/20 animate-slide-down">
+          <nav className="px-4 py-4 space-y-1">
             {navLinks.map(({ path, label, icon: Icon }) => {
               const isActive = location.pathname.startsWith(path);
               return (
@@ -144,9 +144,9 @@ export default function Navbar() {
                   key={path}
                   to={path}
                   onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-sm text-body font-medium transition-colors ${isActive
-                      ? 'text-primary bg-soft-stone'
-                      : 'text-muted hover:text-ink hover:bg-soft-stone/50'
+                  className={`flex items-center gap-3 px-4 py-3 rounded-full text-body font-medium transition-colors ${isActive
+                      ? 'text-primary bg-white/40 ring-1 ring-white/50'
+                      : 'text-muted hover:text-ink hover:bg-white/25'
                     }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -157,7 +157,7 @@ export default function Navbar() {
             <Link
               to="/profile"
               onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-3 px-4 py-3 rounded-sm text-body font-medium text-muted hover:text-ink hover:bg-soft-stone/50"
+              className="flex items-center gap-3 px-4 py-3 rounded-full text-body font-medium text-muted hover:text-ink hover:bg-white/25"
             >
               <User className="w-5 h-5" />
               Profile

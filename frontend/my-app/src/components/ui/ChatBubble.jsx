@@ -5,11 +5,11 @@ export default function ChatBubble({ role, content, metadata }) {
 
   return (
     <div className={`flex gap-4 ${!isInterviewer ? 'flex-row-reverse' : ''}`}>
-      <div className={`w-10 h-10 flex-shrink-0 rounded-lg flex items-center justify-center ${isInterviewer ? 'bg-brand-dark' : 'bg-canvas-stone border border-neutral-200'}`}>
-        {isInterviewer ? <Bot className="w-5 h-5 text-white" /> : <User className="w-5 h-5 text-brand-black" />}
+      <div className={`w-10 h-10 flex-shrink-0 rounded-lg flex items-center justify-center ${isInterviewer ? 'bg-dark-navy' : 'bg-soft-stone border border-neutral-200'}`}>
+        {isInterviewer ? <Bot className="w-5 h-5 text-white" /> : <User className="w-5 h-5 text-primary" />}
       </div>
-      <div className={`max-w-[80%] p-4 rounded-2xl shadow-flat-sm ${isInterviewer ? 'bg-neutral-50 border border-neutral-200' : 'bg-brand-green/5 border border-brand-green/20'}`}>
-        <p className="text-brand-black leading-relaxed whitespace-pre-wrap">{content}</p>
+      <div className={`max-w-[80%] p-4 rounded-2xl shadow-flat-sm ${isInterviewer ? 'bg-neutral-50 border border-neutral-200' : 'bg-deep-green/5 border border-deep-green/20'}`}>
+        <p className="text-primary leading-relaxed whitespace-pre-wrap">{content}</p>
         
         {metadata && (
           <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-neutral-100/50">

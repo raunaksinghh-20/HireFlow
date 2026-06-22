@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { getMyInterviews } from '../../api/interviews';
 import { listApplications } from '../../api/applications';
+import { getMySlots } from '../../api/calendar';
 import ScrollReveal from '../../components/ui/ScrollReveal';
 import SkeletonLoader from '../../components/ui/SkeletonLoader';
 import EmptyState from '../../components/ui/EmptyState';
@@ -14,25 +15,37 @@ import StatusPill from '../../components/ui/StatusPill';
 export default function MyInterviewsPage() {
   const [interviews, setInterviews] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [mySlots, setMySlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
 
   useEffect(() => {
-    Promise.allSettled([getMyInterviews(), listApplications()])
-      .then(([intRes, appRes]) => {
+    Promise.allSettled([getMyInterviews(), listApplications(), getMySlots()])
+      .then(([intRes, appRes, slotsRes]) => {
         if (intRes.status === 'fulfilled') setInterviews(intRes.value.data);
         if (appRes.status === 'fulfilled') setApplications(appRes.value.data);
+        if (slotsRes.status === 'fulfilled') setMySlots(slotsRes.value.data);
       })
       .finally(() => setLoading(false));
   }, []);
 
-  // Filter: "interview_scheduled" applications as upcoming
-  const scheduledApps = applications.filter(a => a.status === 'interview_scheduled');
+  const interviewKey = (item) => `${item.resume_id || ''}:${item.job_id || ''}`;
   const completedInterviews = interviews.filter(i => i.status === 'completed');
-  const activeInterviews = interviews.filter(i => i.status === 'active');
+  const completedKeys = new Set(completedInterviews.map(interviewKey));
+
+  // Filter application invites out once an interview exists for the same resume/job.
+  const scheduledApps = applications.filter(
+    (app) =>
+      ['interview_scheduled', 'approved', 'shortlisted'].includes(app.status) &&
+      !completedKeys.has(interviewKey(app))
+  );
+  const activeInterviews = interviews.filter(
+    (interview) => interview.status === 'active' && !completedKeys.has(interviewKey(interview))
+  );
+  const visibleInterviewCount = scheduledApps.length + activeInterviews.length + completedInterviews.length;
 
   const tabs = [
-    { key: 'all', label: 'All', count: interviews.length + scheduledApps.length },
+    { key: 'all', label: 'All', count: visibleInterviewCount },
     { key: 'scheduled', label: 'Scheduled', count: scheduledApps.length },
     { key: 'active', label: 'In Progress', count: activeInterviews.length },
     { key: 'completed', label: 'Completed', count: completedInterviews.length },
@@ -108,23 +121,31 @@ export default function MyInterviewsPage() {
               </h2>
             )}
             <div className="space-y-4">
-              {scheduledApps.map((app) => (
+              {scheduledApps.map((app) => {
+                const slot = mySlots.find(s => s.job_id === app.job_id);
+                return (
                 <div key={app.id} className="card-hover border-l-4 border-l-action-blue">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                       <h3 className="font-bold text-lg text-ink">{app.job_title}</h3>
                       <p className="text-muted text-sm">{app.company || 'Company'}</p>
                       <div className="mt-2 flex items-center gap-2">
-                        <StatusPill status="interview_scheduled" />
-                        <span className="text-xs text-muted flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" /> Awaiting interview link
-                        </span>
+                        <StatusPill status={app.status} />
+                        {slot ? (
+                          <span className="text-xs font-medium text-action-blue flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" /> {new Date(slot.scheduled_time).toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" /> Awaiting interview scheduling
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="shrink-0 flex items-center gap-3">
                       <span className="badge badge-info text-sm flex items-center gap-2 px-4 py-2">
                         <Calendar className="w-4 h-4" />
-                        Scheduled
+                        {slot ? 'Scheduled' : 'Approved'}
                       </span>
                       <Link
                         to={`/candidate/interviews/landing?resumeId=${app.resume_id}&jobId=${app.job_id}`}
@@ -136,7 +157,7 @@ export default function MyInterviewsPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           </div>
         )}
@@ -259,7 +280,7 @@ export default function MyInterviewsPage() {
         )}
 
         {/* Empty states */}
-        {activeTab === 'all' && interviews.length === 0 && scheduledApps.length === 0 && (
+        {activeTab === 'all' && visibleInterviewCount === 0 && (
           <EmptyState
             icon={MessageSquare}
             title="No interviews yet"

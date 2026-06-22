@@ -11,7 +11,7 @@ from app.models.db_models import User, Resume, Job
 from app.schemas.all_schemas import ResumeUploadResponse, ResumeOut
 from app.utils.file_handler import save_upload_file
 from app.services.resume_service import (
-    extract_text_from_pdf,
+    extract_text_from_file,
     parse_resume_sections,
     extract_candidate_email,
     get_parsed_sections_summary,
@@ -28,7 +28,7 @@ async def upload_resume(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Upload a candidate PDF resume. Extract and parse its text immediately."""
+    """Upload a candidate PDF or DOCX resume. Extract and parse its text immediately."""
     # Verify job exists
     result = await db.execute(select(Job).where(Job.id == job_id))
     job = result.scalars().first()
@@ -38,9 +38,9 @@ async def upload_resume(
     # Save file to disk
     file_path, file_name, file_size_kb = await save_upload_file(file)
 
-    # Extract text from PDF
+# Extract text from PDF or DOCX
     try:
-        extracted_text = extract_text_from_pdf(file_path)
+        extracted_text = extract_text_from_file(file_path, file_name)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

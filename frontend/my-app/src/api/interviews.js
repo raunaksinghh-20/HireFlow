@@ -2,6 +2,7 @@ import api from './axios';
 
 export const startInterview = (data) => api.post('/start-interview', data);
 export const submitAnswer = (data) => api.post('/transcript', data);
+export const quitInterview = (data) => api.post('/interview/quit', data);
 export const submitVoiceAnswer = (formData) => api.post('/transcript/voice', formData, {
   headers: {
     'Content-Type': 'multipart/form-data',

@@ -11,8 +11,15 @@ from app.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
+<<<<<<< HEAD
 # backend folder
 BASE_DIR = Path(__file__).resolve().parents[2]
+=======
+# Ensure logs directory exists
+LOGS_DIR = Path(__file__).resolve().parent.parent.parent / "logs"
+LOGS_DIR.mkdir(exist_ok=True, parents=True)
+LOG_FILE_PATH = LOGS_DIR / "email_notifications.log"
+>>>>>>> 9cef9dd972f903bf2e258f20792add183d0df5e4
 
 # backend/logs
 LOGS_DIR = BASE_DIR / "logs"

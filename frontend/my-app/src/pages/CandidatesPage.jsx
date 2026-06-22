@@ -1,17 +1,31 @@
 import { useState, useEffect } from 'react';
-import { BarChart3 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { BarChart3, Eye, FileText, Star, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getJobs } from '../api/jobs';
 import { rankCandidates, scoreResume } from '../api/ats';
-import { updateApplicationStatusByResume } from '../api/applications';
+import { updateApplicationStatus, updateApplicationStatusByResume, listApplications } from '../api/applications';
+import { listInterviews } from '../api/interviews';
+import StatusPill from '../components/ui/StatusPill';
 
 export default function CandidatesPage() {
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [selectedJob, setSelectedJob] = useState('');
   const [candidates, setCandidates] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [allApplications, setAllApplications] = useState([]);
+  const [interviews, setInterviews] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { getJobs().then((r) => setJobs(r.data)).catch(() => { }); }, []);
+  useEffect(() => {
+    Promise.allSettled([getJobs(), listApplications(), listInterviews()])
+      .then(([jobsRes, appRes, interviewsRes]) => {
+        if (jobsRes.status === 'fulfilled') setJobs(jobsRes.value.data);
+        if (appRes.status === 'fulfilled') setAllApplications(appRes.value.data);
+        if (interviewsRes.status === 'fulfilled') setInterviews(interviewsRes.value.data);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   useEffect(() => {
     if (!selectedJob) { setCandidates([]); return; }
@@ -26,6 +40,31 @@ export default function CandidatesPage() {
     if (score >= 70) return 'score-high';
     if (score >= 50) return 'score-mid';
     return 'score-low';
+  };
+
+  const interviewKey = (item) => `${item.resume_id || ''}:${item.job_id || ''}`;
+  const latestCompletedByCandidate = interviews
+    .filter((interview) => interview.status === 'completed')
+    .reduce((acc, interview) => {
+      const key = interviewKey(interview);
+      if (!acc[key] || new Date(interview.created_at) > new Date(acc[key].created_at)) {
+        acc[key] = interview;
+      }
+      return acc;
+    }, {});
+
+  const getCompletedInterview = (item) => latestCompletedByCandidate[interviewKey(item)];
+
+  const updateDecision = async (applicationId, nextStatus) => {
+    const label = nextStatus === 'selected' ? 'selected' : 'rejected';
+    try {
+      await updateApplicationStatus(applicationId, { status: nextStatus });
+      toast.success(`Candidate ${label}.`);
+      const applicationsRes = await listApplications();
+      setAllApplications(applicationsRes.data);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || `Failed to mark candidate as ${label}`);
+    }
   };
 
   return (
@@ -55,7 +94,7 @@ export default function CandidatesPage() {
       </div>
 
       {/* Rankings */}
-      {selectedJob && (
+      {selectedJob ? (
         <div className="card p-0">
           <div className="px-6 py-5 border-b border-hairline flex items-center gap-3">
             <div className="w-9 h-9 bg-deep-green rounded-sm flex items-center justify-center">
@@ -78,7 +117,10 @@ export default function CandidatesPage() {
             </div>
           ) : (
             <div className="divide-y divide-hairline">
-              {candidates.map((c) => (
+              {candidates.map((c) => {
+                const application = allApplications.find((app) => app.resume_id === c.resume_id && app.job_id === selectedJob);
+                const completedInterview = getCompletedInterview({ resume_id: c.resume_id, job_id: selectedJob });
+                return (
                 <div key={c.resume_id} className="flex items-center justify-between px-6 py-4 hover:bg-soft-stone/30 transition-colors">
                   <div className="flex items-center gap-4 min-w-0 flex-1">
                     <div className={`w-10 h-10 rounded-sm flex items-center justify-center font-display text-lg font-semibold shrink-0 ${c.rank <= 3
@@ -95,32 +137,67 @@ export default function CandidatesPage() {
                           <span className="text-error"> · {c.skill_gaps.length} gap{c.skill_gaps.length > 1 ? 's' : ''}</span>
                         )}
                       </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        {application && <StatusPill status={application.status} />}
+                        {completedInterview?.evaluation && (
+                          <span className="badge-success flex items-center gap-1">
+                            <Star className="w-3 h-3" />
+                            Interview {completedInterview.evaluation_score?.toFixed(1)}/100
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="text-right shrink-0 ml-4">
                     {c.ats_score !== null && c.ats_score !== undefined ? (
-                      <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-3">
                         <div className="text-right">
                           <div className={`font-display text-feature-heading font-medium ${getScoreClass(c.ats_score)}`}>
                             {c.ats_score}%
                           </div>
                           <div className="text-micro text-muted">ATS Score</div>
                         </div>
-                        <button
-                          onClick={async (e) => {
-                            e.preventDefault();
-                            const id = toast.loading('Scheduling interview...');
-                            try {
-                              await updateApplicationStatusByResume(c.resume_id, { status: 'interview_scheduled' });
-                              toast.success('Interview scheduled for candidate!', { id });
-                            } catch (err) {
-                              toast.error('Failed to schedule interview', { id });
-                            }
-                          }}
-                          className="btn-primary text-sm py-2 px-4 whitespace-nowrap"
-                        >
-                          Approve & Schedule
-                        </button>
+                        {completedInterview?.evaluation ? (
+                          <>
+                            <button
+                              onClick={() => navigate(`/evaluation?interviewId=${completedInterview.id}`)}
+                              className="btn-secondary text-sm py-2 px-3 whitespace-nowrap"
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              Evaluation
+                            </button>
+                            {application && !['selected', 'rejected'].includes(application.status) && (
+                              <>
+                                <button onClick={() => updateDecision(application.id, 'selected')} className="btn-primary text-sm py-2 px-3 whitespace-nowrap">
+                                  Select
+                                </button>
+                                <button onClick={() => updateDecision(application.id, 'rejected')} className="btn-secondary text-sm py-2 px-3 whitespace-nowrap">
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          <button
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              try {
+                                await updateApplicationStatusByResume(c.resume_id, { status: 'interview_scheduled' });
+                                toast.success('Application approved! Redirecting to Calendar...');
+                              } catch (err) {
+                                if (err.response?.status === 404) {
+                                  toast.error("Candidate hasn't officially applied. Redirecting to Calendar...");
+                                } else {
+                                  toast.error('Failed to schedule interview');
+                                }
+                              }
+                              setTimeout(() => navigate('/calendar'), 1500);
+                            }}
+                            className="btn-primary text-sm py-2 px-4 whitespace-nowrap"
+                          >
+                            Approve & Schedule
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <button
@@ -143,7 +220,86 @@ export default function CandidatesPage() {
                     )}
                   </div>
                 </div>
-              ))}
+              )})}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="card p-0 mt-8">
+          <div className="px-6 py-5 border-b border-hairline flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-deep-green rounded-sm flex items-center justify-center">
+                <Users className="w-4 h-4 text-on-dark" />
+              </div>
+              <h2 className="heading-feature">All Applicants</h2>
+            </div>
+            <span className="text-muted font-medium">{allApplications.length} total</span>
+          </div>
+
+          {loading ? (
+            <div className="p-6 space-y-3">
+              {[1, 2, 3].map((i) => <div key={i} className="skeleton h-16" />)}
+            </div>
+          ) : allApplications.length === 0 ? (
+            <div className="empty-state px-6 py-16">
+              <Users className="empty-state-icon mb-4" />
+              <p className="text-body text-muted">No candidates have applied yet.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-hairline">
+              {allApplications.map((app) => {
+                const completedInterview = getCompletedInterview(app);
+                return (
+                <div key={app.id} className="flex items-center justify-between px-6 py-4 hover:bg-soft-stone/30 transition-colors">
+                  <div className="flex items-center gap-4 min-w-0 flex-1">
+                    <div className="w-12 h-12 flex flex-col items-center justify-center font-bold text-lg rounded-xl bg-neutral-100 text-brand-black border border-neutral-200 shrink-0">
+                      <span className="text-[10px] leading-tight uppercase text-neutral-500">ATS</span>
+                      <span className="leading-tight">{app.ats_score != null ? app.ats_score : '-'}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-medium text-ink truncate mb-0.5">{app.candidate_name}</div>
+                      <div className="text-sm text-muted mb-2">Applied for: <span className="font-semibold text-ink">{app.job_title}</span></div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <StatusPill status={app.status} />
+                        {completedInterview?.evaluation && (
+                          <span className="badge-success flex items-center gap-1">
+                            <Star className="w-3 h-3" />
+                            Interview {completedInterview.evaluation_score?.toFixed(1)}/100
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {completedInterview?.evaluation && (
+                    <div className="shrink-0 flex flex-wrap items-center justify-end gap-2 ml-4">
+                      <button
+                        onClick={() => navigate(`/transcript/${completedInterview.id}`)}
+                        className="btn-secondary text-sm py-2 px-3 whitespace-nowrap"
+                      >
+                        <FileText className="w-4 h-4 mr-1" />
+                        Transcript
+                      </button>
+                      <button
+                        onClick={() => navigate(`/evaluation?interviewId=${completedInterview.id}`)}
+                        className="btn-primary text-sm py-2 px-3 whitespace-nowrap"
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        Evaluation
+                      </button>
+                      {!['selected', 'rejected'].includes(app.status) && (
+                        <>
+                          <button onClick={() => updateDecision(app.id, 'selected')} className="btn-primary text-sm py-2 px-3 whitespace-nowrap">
+                            Select
+                          </button>
+                          <button onClick={() => updateDecision(app.id, 'rejected')} className="btn-secondary text-sm py-2 px-3 whitespace-nowrap">
+                            Reject
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )})}
             </div>
           )}
         </div>

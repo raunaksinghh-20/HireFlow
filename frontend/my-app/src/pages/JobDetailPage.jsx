@@ -188,13 +188,17 @@ export default function JobDetailPage() {
                         <button
                           onClick={async (e) => {
                             e.preventDefault();
-                            const id = toast.loading('Scheduling...');
                             try {
                               await updateApplicationStatusByResume(r.id, { status: 'interview_scheduled' });
-                              toast.success('Interview scheduled for candidate!', { id });
+                              toast.success('Application approved! Redirecting to Calendar...');
                             } catch (err) {
-                              toast.error('Failed to schedule. Has candidate applied?', { id });
+                              if (err.response?.status === 404) {
+                                toast.error("Candidate hasn't officially applied. Redirecting to Calendar...");
+                              } else {
+                                toast.error('Failed to update status.');
+                              }
                             }
+                            setTimeout(() => navigate('/calendar'), 1500);
                           }}
                           className="btn-primary text-sm py-2 px-4"
                         >

@@ -17,7 +17,7 @@ export default function InterviewLanding() {
   return (
     <div className="page-container max-w-3xl">
       <div className="text-center mb-12">
-        <h1 className="text-display font-bold font-display tracking-tight text-brand-black mb-4">Interview Setup</h1>
+        <h1 className="text-display font-bold font-display tracking-tight text-primary mb-4">Interview Setup</h1>
         <p className="text-neutral-500 text-lg">Please review the instructions and select your preferred interview mode.</p>
       </div>
 
@@ -26,21 +26,21 @@ export default function InterviewLanding() {
         
         <div className="space-y-6">
           <div className="flex gap-4">
-            <div className="w-10 h-10 rounded-full bg-brand-green/10 text-brand-green flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-deep-green/10 text-deep-green flex items-center justify-center flex-shrink-0">
               <Clock className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="font-bold text-brand-black">Time Commitment</h4>
+              <h4 className="font-bold text-primary">Time Commitment</h4>
               <p className="text-sm text-neutral-500 mt-1">This interview consists of 8 questions and will take approximately 15-20 minutes.</p>
             </div>
           </div>
           
           <div className="flex gap-4">
-            <div className="w-10 h-10 rounded-full bg-brand-green/10 text-brand-green flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-deep-green/10 text-deep-green flex items-center justify-center flex-shrink-0">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="font-bold text-brand-black">Data Privacy</h4>
+              <h4 className="font-bold text-primary">Data Privacy</h4>
               <p className="text-sm text-neutral-500 mt-1">Your responses will be recorded and analyzed by AI to provide an objective evaluation to the recruitment team.</p>
             </div>
           </div>
@@ -55,14 +55,14 @@ export default function InterviewLanding() {
             onClick={() => setMode('text')}
             className={`p-6 rounded-xl border-2 text-left transition-all ${
               mode === 'text' 
-                ? 'border-brand-black bg-neutral-50 shadow-sm' 
+                ? 'border-primary bg-neutral-50 shadow-sm' 
                 : 'border-neutral-200 hover:border-neutral-300 bg-white'
             }`}
           >
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-4 ${mode === 'text' ? 'bg-brand-black text-white' : 'bg-neutral-100 text-neutral-500'}`}>
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-4 ${mode === 'text' ? 'bg-primary text-white' : 'bg-neutral-100 text-neutral-500'}`}>
               <Type className="w-5 h-5" />
             </div>
-            <h4 className="font-bold text-brand-black mb-2">Text Chat</h4>
+            <h4 className="font-bold text-primary mb-2">Text Chat</h4>
             <p className="text-sm text-neutral-500">Read questions and type your answers at your own pace.</p>
           </button>
 
@@ -70,14 +70,14 @@ export default function InterviewLanding() {
             onClick={() => setMode('voice')}
             className={`p-6 rounded-xl border-2 text-left transition-all ${
               mode === 'voice' 
-                ? 'border-brand-black bg-neutral-50 shadow-sm' 
+                ? 'border-primary bg-neutral-50 shadow-sm' 
                 : 'border-neutral-200 hover:border-neutral-300 bg-white'
             }`}
           >
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-4 ${mode === 'voice' ? 'bg-brand-black text-white' : 'bg-neutral-100 text-neutral-500'}`}>
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-4 ${mode === 'voice' ? 'bg-primary text-white' : 'bg-neutral-100 text-neutral-500'}`}>
               <Mic className="w-5 h-5" />
             </div>
-            <h4 className="font-bold text-brand-black mb-2">Voice Chat</h4>
+            <h4 className="font-bold text-primary mb-2">Voice Chat</h4>
             <p className="text-sm text-neutral-500">Listen to questions and speak your answers. Requires microphone access.</p>
           </button>
         </div>

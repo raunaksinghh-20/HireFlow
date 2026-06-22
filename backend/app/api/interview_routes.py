@@ -8,10 +8,11 @@ from sqlalchemy import select
 
 from app.config.database import get_db
 from app.api.dependencies import get_current_user
-from app.models.db_models import User, Resume, Job, Interview, Transcript, Evaluation
+from app.models.db_models import User, Resume, Job, Interview, Transcript, Evaluation, Application
 from app.schemas.all_schemas import (
     StartInterviewRequest, StartInterviewResponse,
     SubmitAnswerRequest, SubmitAnswerResponse,
+    QuitInterviewRequest, QuitInterviewResponse,
     TranscriptOut, TranscriptTurnOut,
     EvaluationRequest, EvaluationOut, InterviewOut,
 )
@@ -24,6 +25,37 @@ import base64
 from fastapi import File, Form, UploadFile
 
 router = APIRouter(tags=["Interviews"])
+
+
+async def _mark_application_interviewed(db: AsyncSession, resume_id: UUID, job_id: UUID) -> None:
+    result = await db.execute(
+        select(Application).where(
+            (Application.resume_id == resume_id) &
+            (Application.job_id == job_id)
+        )
+    )
+    application = result.scalars().first()
+    if application and application.status in {"approved", "shortlisted", "interview_scheduled"}:
+        application.status = "interviewed"
+
+
+async def _abandon_other_active_interviews(
+    db: AsyncSession,
+    interview_id: UUID,
+    resume_id: UUID,
+    job_id: UUID,
+) -> None:
+    result = await db.execute(
+        select(Interview).where(
+            (Interview.id != interview_id) &
+            (Interview.resume_id == resume_id) &
+            (Interview.job_id == job_id) &
+            (Interview.status == "active")
+        )
+    )
+    for stale_interview in result.scalars().all():
+        stale_interview.status = "abandoned"
+        stale_interview.ended_at = datetime.now(timezone.utc)
 
 
 @router.post("/start-interview", response_model=StartInterviewResponse, status_code=status.HTTP_201_CREATED)
@@ -185,6 +217,17 @@ async def submit_answer(
     if result["is_complete"]:
         # Close interview
         await close_interview(db, interview_id, payload.session_token)
+        await _abandon_other_active_interviews(
+            db,
+            interview_id,
+            UUID(state["resume_id"]),
+            UUID(state["job_id"]),
+        )
+        await _mark_application_interviewed(
+            db,
+            UUID(state["resume_id"]),
+            UUID(state["job_id"]),
+        )
         await finalize_transcript(
             db, interview_id,
             started_at=None,
@@ -246,6 +289,47 @@ async def submit_answer(
     )
 
 
+@router.post("/interview/quit", response_model=QuitInterviewResponse)
+async def quit_interview(
+    payload: QuitInterviewRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """End an active interview early so evaluation can use the saved progress."""
+    state = await session_manager.get_session(payload.session_token)
+    if state is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Interview session expired or not found",
+        )
+
+    interview_id = UUID(state["interview_id"])
+
+    await close_interview(db, interview_id, payload.session_token)
+    await _abandon_other_active_interviews(
+        db,
+        interview_id,
+        UUID(state["resume_id"]),
+        UUID(state["job_id"]),
+    )
+    await _mark_application_interviewed(
+        db,
+        UUID(state["resume_id"]),
+        UUID(state["job_id"]),
+    )
+    await finalize_transcript(
+        db,
+        interview_id,
+        started_at=None,
+        ended_at=datetime.now(timezone.utc),
+    )
+
+    return QuitInterviewResponse(
+        interview_id=interview_id,
+        message="Interview ended early. Generate the candidate evaluation from current progress.",
+    )
+
+
 @router.post("/transcript/voice", response_model=SubmitAnswerResponse)
 async def submit_voice_answer(
     session_token: str = Form(...),
@@ -298,6 +382,17 @@ async def submit_voice_answer(
     if result["is_complete"]:
         # Close interview
         await close_interview(db, interview_id, session_token)
+        await _abandon_other_active_interviews(
+            db,
+            interview_id,
+            UUID(state["resume_id"]),
+            UUID(state["job_id"]),
+        )
+        await _mark_application_interviewed(
+            db,
+            UUID(state["resume_id"]),
+            UUID(state["job_id"]),
+        )
         await finalize_transcript(db, interview_id, started_at=None, ended_at=datetime.now(timezone.utc))
 
         return SubmitAnswerResponse(
@@ -417,6 +512,12 @@ async def create_evaluation(
             detail="Interview must be completed before evaluation",
         )
 
+    # Fetch transcript before idempotency handling so empty-interview evaluations
+    # can be corrected if an older optimistic evaluation already exists.
+    transcript = await get_transcript(db, payload.interview_id)
+    if not transcript:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transcript not found")
+
     # Check for existing evaluation (idempotent)
     result = await db.execute(
         select(Evaluation).where(Evaluation.interview_id == payload.interview_id)
@@ -425,6 +526,26 @@ async def create_evaluation(
     if existing_eval:
         resume = (await db.execute(select(Resume).where(Resume.id == interview.resume_id))).scalars().first()
         job = (await db.execute(select(Job).where(Job.id == interview.job_id))).scalars().first()
+        has_candidate_answers = any(
+            turn.get("role") == "candidate" and (turn.get("content") or "").strip()
+            for turn in (transcript.turns or [])
+        )
+        if not has_candidate_answers:
+            eval_result = await generate_evaluation(interview, transcript, resume, job)
+            existing_eval.technical_score = eval_result["technical_score"]
+            existing_eval.communication_score = eval_result["communication_score"]
+            existing_eval.consistency_score = eval_result["consistency_score"]
+            existing_eval.depth_score = eval_result["depth_score"]
+            existing_eval.confidence_score = eval_result["confidence_score"]
+            existing_eval.overall_score = eval_result["overall_score"]
+            existing_eval.strengths = eval_result["strengths"]
+            existing_eval.red_flags = eval_result["red_flags"]
+            existing_eval.skill_gap_confirmed = eval_result["skill_gap_confirmed"]
+            existing_eval.hire_recommendation = eval_result["hire_recommendation"]
+            existing_eval.summary_report = eval_result["summary_report"]
+            existing_eval.raw_llm_response = {"raw": eval_result.get("raw_llm_response", "")}
+            await db.flush()
+
         return EvaluationOut(
             evaluation_id=existing_eval.id,
             interview_id=existing_eval.interview_id,
@@ -445,10 +566,6 @@ async def create_evaluation(
         )
 
     # Fetch related data
-    transcript = await get_transcript(db, payload.interview_id)
-    if not transcript:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transcript not found")
-
     result = await db.execute(select(Resume).where(Resume.id == interview.resume_id))
     resume = result.scalars().first()
 
@@ -558,6 +675,7 @@ async def get_my_interviews(
         out_list.append(
             InterviewOut(
                 id=interview.id,
+                resume_id=interview.resume_id,
                 job_id=interview.job_id,
                 job_title=job.title,
                 company=job.company or "Unknown",
@@ -619,6 +737,7 @@ async def list_interviews(
         out_list.append(
             InterviewOut(
                 id=interview.id,
+                resume_id=interview.resume_id,
                 job_id=interview.job_id,
                 job_title=job.title,
                 company=job.company or "Unknown",

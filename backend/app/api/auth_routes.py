@@ -24,6 +24,7 @@ async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)):
         email=user.email,
         full_name=user.full_name,
         role=user.role,
+        profile_picture=user.profile_picture,
     )
 
 
@@ -39,6 +40,7 @@ async def login(payload: OAuth2PasswordRequestForm = Depends(), db: AsyncSession
         email=user.email,
         full_name=user.full_name,
         role=user.role,
+        profile_picture=user.profile_picture,
     )
 
 

@@ -28,6 +28,7 @@ class TokenResponse(BaseModel):
     email: str
     full_name: str
     role: str
+    profile_picture: Optional[str] = None
 
 
 class UserOut(BaseModel):
@@ -35,6 +36,7 @@ class UserOut(BaseModel):
     email: str
     full_name: str
     role: str
+    profile_picture: Optional[str] = None
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
@@ -193,6 +195,16 @@ class SubmitAnswerResponse(BaseModel):
     message: str
     transcribed_text: Optional[str] = None
     audio_base64: Optional[str] = None
+
+
+class QuitInterviewRequest(BaseModel):
+    session_token: str
+
+
+class QuitInterviewResponse(BaseModel):
+    interview_id: UUID
+    interview_complete: bool = True
+    message: str = "Interview ended. Generate the candidate evaluation from current progress."
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -382,6 +394,7 @@ class CandidateAnalyticsOut(BaseModel):
 
 class InterviewOut(BaseModel):
     id: UUID
+    resume_id: UUID
     job_id: UUID
     job_title: str
     company: str
@@ -395,6 +408,5 @@ class InterviewOut(BaseModel):
 
     class Config:
         from_attributes = True
-
 
 

@@ -13,6 +13,7 @@ from app.models.db_models import User, Job, Resume, Interview, Transcript, Evalu
 
 # Import routers
 from app.api.auth_routes import router as auth_router
+from app.api.auth_json_routes import router as auth_json_router
 from app.api.job_routes import router as job_router
 from app.api.resume_routes import router as resume_router
 from app.api.ats_routes import router as ats_router
@@ -64,6 +65,7 @@ app.add_middleware(
 
 # ── Register Routers ─────────────────────────────────────────
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(auth_json_router, prefix="/api/v1")
 app.include_router(job_router, prefix="/api/v1")
 app.include_router(resume_router, prefix="/api/v1")
 app.include_router(ats_router, prefix="/api/v1")
