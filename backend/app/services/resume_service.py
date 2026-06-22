@@ -1,5 +1,8 @@
 import re
+import json
+import asyncio
 from pathlib import Path
+from google import genai
 
 
 def extract_text_from_pdf(file_path: str) -> str:
@@ -155,6 +158,97 @@ def extract_candidate_email(text: str) -> str | None:
     pattern = r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
     match = re.search(pattern, text)
     return match.group(0) if match else None
+
+
+async def parse_resume_sections_with_gemini(text: str, gemini_api_key: str = None) -> dict:
+    """
+    Parse resume using Gemini with strict JSON schema, fallback to regex if it fails.
+    Uses low temperature for deterministic output.
+    Returns: { summary, skills:[], experience:[], education:[], projects:[], certifications:[], years_of_experience, raw }
+    """
+    # If no API key or extraction fails, return regex-parsed version
+    if not gemini_api_key:
+        return parse_resume_sections(text)
+    
+    try:
+        from app.config.settings import settings
+        api_key = gemini_api_key or settings.GEMINI_API_KEY
+    except Exception:
+        return parse_resume_sections(text)
+    
+    if not api_key:
+        return parse_resume_sections(text)
+    
+    extraction_prompt = f"""Extract structured information from this resume text. Return ONLY valid JSON (no markdown, no extra text).
+
+RESUME TEXT:
+{text[:10000]}
+
+Extract and return this exact JSON schema:
+{{
+  "summary": "1-2 sentence professional summary or empty string",
+  "skills": ["skill1", "skill2", ...],
+  "years_of_experience": <integer or 0>,
+  "education": ["degree/school", ...],
+  "projects": ["project title/description", ...],
+  "certifications": ["certification name", ...]
+}}
+
+Rules:
+- Extract ONLY from the provided text
+- skills: list of unique technical skills, programming languages, frameworks, tools
+- years_of_experience: total years based on dates in work history or if expicitly mentioned (round down to nearest whole year)
+- education: degrees, schools, universities mentioned
+- projects: portfolio or work projects
+- certifications: certs, licenses, awards
+- Return empty lists if section not found
+- Return valid JSON ONLY."""
+    
+    try:
+        client = genai.Client(api_key=api_key)
+        
+        # Call Gemini with low temperature for determinism
+        response = await asyncio.to_thread(
+            client.models.generate_content,
+            model="gemini-2.5-flash-lite",
+            contents=extraction_prompt,
+            config={"temperature": 0.1, "max_output_tokens": 1024}
+        )
+        
+        # Extract JSON from response
+        response_text = response.text.strip()
+        if response_text.startswith("```"):
+            response_text = response_text.split("```")[1]
+            if response_text.startswith("json"):
+                response_text = response_text[4:]
+            response_text = response_text.split("```")[0]
+        
+        extracted = json.loads(response_text)
+        
+        # Validate required fields
+        if not isinstance(extracted.get("skills"), list):
+            extracted["skills"] = []
+        if not isinstance(extracted.get("education"), list):
+            extracted["education"] = []
+        if not isinstance(extracted.get("certifications"), list):
+            extracted["certifications"] = []
+        if not isinstance(extracted.get("projects"), list):
+            extracted["projects"] = []
+        
+        years = extracted.get("years_of_experience", 0)
+        if not isinstance(years, int) or years < 0:
+            years = 0
+        extracted["years_of_experience"] = years
+        
+        # Add raw text and experience list for compatibility
+        extracted["raw"] = text
+        extracted["experience"] = extracted.get("experience", [])
+        
+        return extracted
+        
+    except (json.JSONDecodeError, KeyError, AttributeError, Exception) as e:
+        # Fallback to regex parser if Gemini fails, returns invalid JSON, or times out
+        return parse_resume_sections(text)
 
 
 def get_parsed_sections_summary(parsed: dict) -> dict:

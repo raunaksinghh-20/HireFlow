@@ -13,6 +13,7 @@ from app.utils.file_handler import save_upload_file
 from app.services.resume_service import (
     extract_text_from_file,
     parse_resume_sections,
+    parse_resume_sections_with_gemini,
     extract_candidate_email,
     get_parsed_sections_summary,
 )
@@ -47,8 +48,13 @@ async def upload_resume(
             detail=str(e),
         )
 
-    # Parse resume sections
-    parsed_sections = parse_resume_sections(extracted_text)
+    # Parse resume sections with Gemini extraction (fallback to regex)
+    try:
+        from app.config.settings import settings
+        parsed_sections = await parse_resume_sections_with_gemini(extracted_text, settings.GEMINI_API_KEY)
+    except Exception:
+        parsed_sections = parse_resume_sections(extracted_text)
+    
     candidate_email = extract_candidate_email(extracted_text)
 
     # Create resume record

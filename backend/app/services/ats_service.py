@@ -25,8 +25,8 @@ def calculate_ats_score(resume: Resume, job: Job) -> dict:
     Pure Python ATS scoring. No AI call needed — keeps it fast.
 
     Scoring formula:
-    1. skills_score  (weight: 50%) — skill match ratio
-    2. keyword_score (weight: 30%) — JD keyword presence in resume
+    1. skills_score  (weight: 60%) — skill match ratio
+    2. keyword_score (weight: 20%) — JD keyword presence in resume
     3. experience_score (weight: 20%) — years of experience match
 
     Returns full scoring breakdown.
@@ -87,7 +87,7 @@ def calculate_ats_score(resume: Resume, job: Job) -> dict:
         experience_match = False
 
     # ── Composite Score ──────────────────────────────────────────
-    ranking_score = (skills_score * 0.5) + (keyword_score * 0.3) + (experience_score * 0.2)
+    ranking_score = (skills_score * 0.6) + (keyword_score * 0.2) + (experience_score * 0.2)
     ats_score = min(100, max(0, int(ranking_score)))
 
     # Preserve original case for display
