@@ -55,6 +55,13 @@ const useInterviewStore = create((set) => ({
 
   setLoading: (loading) => set({ isLoading: loading }),
 
+  completeInterview: () =>
+    set({
+      isComplete: true,
+      questionsRemaining: 0,
+      isLoading: false,
+    }),
+
   reset: () =>
     set({
       sessionToken: null,

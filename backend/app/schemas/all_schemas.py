@@ -28,6 +28,7 @@ class TokenResponse(BaseModel):
     email: str
     full_name: str
     role: str
+    profile_picture: Optional[str] = None
 
 
 class UserOut(BaseModel):
@@ -35,6 +36,7 @@ class UserOut(BaseModel):
     email: str
     full_name: str
     role: str
+    profile_picture: Optional[str] = None
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None

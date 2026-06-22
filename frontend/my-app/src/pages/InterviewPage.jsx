@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Send, Bot, User, Loader2, CheckCircle, Mic, Square, Volume2 } from 'lucide-react';
+import { Send, Bot, User, Loader2, CheckCircle, Mic, Square, Volume2, LogOut, Briefcase, Eye, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { startInterview, submitAnswer, submitVoiceAnswer } from '../api/interviews';
+import { listInterviews, quitInterview, startInterview, submitAnswer, submitVoiceAnswer } from '../api/interviews';
+import { getJobs } from '../api/jobs';
 import useInterviewStore from '../store/interviewStore';
+import StatusPill from '../components/ui/StatusPill';
 
 export default function InterviewPage() {
   const [searchParams] = useSearchParams();
@@ -15,6 +17,10 @@ export default function InterviewPage() {
   const [turnCount, setTurnCount] = useState(1);
   const [starting, setStarting] = useState(false);
   const [mode, setMode] = useState('text');
+  const [jobs, setJobs] = useState([]);
+  const [interviews, setInterviews] = useState([]);
+  const [selectedHistoryJob, setSelectedHistoryJob] = useState('');
+  const [historyLoading, setHistoryLoading] = useState(true);
 
   // Audio Recording States
   const [isRecording, setIsRecording] = useState(false);
@@ -27,12 +33,23 @@ export default function InterviewPage() {
 
   const {
     sessionToken, interviewId, candidateName, jobTitle, turns,
-    currentQuestion, difficultyLevel, isComplete, questionsRemaining,
-    isLoading, startSession, addAnswer, processResponse, setLoading,
+    difficultyLevel, isComplete, questionsRemaining,
+    isLoading, startSession, addAnswer, processResponse, setLoading, completeInterview,
   } = useInterviewStore();
 
   const resumeId = searchParams.get('resumeId');
   const jobId = searchParams.get('jobId');
+  const showHistory = !resumeId || !jobId;
+
+  useEffect(() => {
+    if (!showHistory) return;
+    Promise.allSettled([getJobs(), listInterviews()])
+      .then(([jobsRes, interviewsRes]) => {
+        if (jobsRes.status === 'fulfilled') setJobs(jobsRes.value.data);
+        if (interviewsRes.status === 'fulfilled') setInterviews(interviewsRes.value.data);
+      })
+      .finally(() => setHistoryLoading(false));
+  }, [showHistory]);
 
   // Auto-scroll
   useEffect(() => {
@@ -182,6 +199,32 @@ export default function InterviewPage() {
     }
   };
 
+  const handleQuit = async () => {
+    if (!sessionToken || isLoading) return;
+    const shouldQuit = window.confirm('Quit this interview and evaluate based on progress so far?');
+    if (!shouldQuit) return;
+
+    if (isRecording && mediaRecorderRef.current) {
+      mediaRecorderRef.current.onstop = null;
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream?.getTracks().forEach((track) => track.stop());
+      setIsRecording(false);
+    }
+    audioRef.current.pause();
+    setIsPlaying(false);
+    setLoading(true);
+
+    try {
+      const { data } = await quitInterview({ session_token: sessionToken });
+      completeInterview();
+      toast.success('Interview ended. Generating evaluation...');
+      navigate(`/evaluation?interviewId=${data.interview_id || interviewId}`);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to quit interview');
+      setLoading(false);
+    }
+  };
+
   const getDifficultyLabel = () => {
     const labels = ['', 'Easy', 'Medium', 'Challenging', 'Hard', 'Expert'];
     return labels[difficultyLevel] || `Level ${difficultyLevel}`;
@@ -192,6 +235,115 @@ export default function InterviewPage() {
     if (difficultyLevel <= 3) return 'text-warning';
     return 'text-error';
   };
+
+  const selectedJobInterviews = selectedHistoryJob
+    ? interviews
+        .filter((interview) => interview.job_id === selectedHistoryJob)
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    : [];
+
+  if (showHistory && !sessionToken) {
+    return (
+      <div className="page-container animate-fade-in">
+        <div className="mb-8">
+          <p className="mono-label mb-2">Interview History</p>
+          <h1 className="font-display text-card-heading text-primary">Interviews</h1>
+          <p className="text-body text-muted mt-1">Select a job role to review conducted interviews and evaluations.</p>
+        </div>
+
+        <div className="card mb-8">
+          <label className="label">Job Role</label>
+          <select
+            className="select-field max-w-md"
+            value={selectedHistoryJob}
+            onChange={(e) => setSelectedHistoryJob(e.target.value)}
+          >
+            <option value="">Choose a job role...</option>
+            {jobs.map((job) => (
+              <option key={job.id} value={job.id}>
+                {job.title} {job.company ? `- ${job.company}` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {historyLoading ? (
+          <div className="card">
+            <div className="skeleton h-16 mb-3" />
+            <div className="skeleton h-16 mb-3" />
+            <div className="skeleton h-16" />
+          </div>
+        ) : !selectedHistoryJob ? (
+          <div className="empty-state card">
+            <Briefcase className="empty-state-icon" />
+            <p className="text-body text-muted">Choose a job role to see interview history.</p>
+          </div>
+        ) : selectedJobInterviews.length === 0 ? (
+          <div className="empty-state card">
+            <Bot className="empty-state-icon" />
+            <p className="text-body text-muted">No interviews have been conducted for this role yet.</p>
+          </div>
+        ) : (
+          <div className="card p-0 overflow-hidden">
+            <div className="px-6 py-5 border-b border-hairline flex items-center justify-between">
+              <h2 className="heading-feature">Interview Records</h2>
+              <span className="text-caption text-muted">{selectedJobInterviews.length} total</span>
+            </div>
+
+            <div className="divide-y divide-hairline">
+              {selectedJobInterviews.map((interview) => (
+                <div key={interview.id} className="px-6 py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-soft-stone/30 transition-colors">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <h3 className="font-medium text-ink">{interview.candidate_name}</h3>
+                      <StatusPill status={interview.status} />
+                      {interview.evaluation?.hire_recommendation && (
+                        <span className="badge-info capitalize">
+                          {interview.evaluation.hire_recommendation.replace('_', ' ')}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-caption text-muted">
+                      {interview.candidate_email || 'No email'} · {interview.mode} · {new Date(interview.created_at).toLocaleString()}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 shrink-0">
+                    {interview.evaluation_score != null && (
+                      <div className="text-right mr-1">
+                        <div className="font-display text-xl font-semibold text-primary">
+                          {interview.evaluation_score.toFixed(1)}
+                        </div>
+                        <div className="text-micro text-muted">Score</div>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => navigate(`/transcript/${interview.id}`)}
+                      className="btn-secondary text-sm py-2 px-3"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Transcript
+                    </button>
+                    {interview.status === 'completed' ? (
+                      <button
+                        onClick={() => navigate(`/evaluation?interviewId=${interview.id}`)}
+                        className="btn-primary text-sm py-2 px-3"
+                      >
+                        <Eye className="w-4 h-4" />
+                        {interview.evaluation ? 'Evaluation' : 'Generate Evaluation'}
+                      </button>
+                    ) : (
+                      <span className="text-caption text-muted">Evaluation available after completion</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // No session yet — start screen
   if (!sessionToken) {
@@ -264,6 +416,15 @@ export default function InterviewPage() {
           <p className="text-caption text-muted mt-0.5">{jobTitle}</p>
         </div>
         <div className="flex items-center gap-5 text-caption">
+          <button
+            type="button"
+            onClick={handleQuit}
+            disabled={isLoading}
+            className="inline-flex items-center gap-2 rounded-sm border border-hairline px-3 py-2 text-btn font-medium text-muted hover:text-ink hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <LogOut className="w-4 h-4" />
+            Quit Interview
+          </button>
           <div className="text-right">
             <span className={`font-mono font-semibold ${getDifficultyColor()}`}>
               {getDifficultyLabel()}
