@@ -13,6 +13,12 @@ import ScoreBadge from '../../components/ui/ScoreBadge';
 import SkillTag from '../../components/ui/SkillTag';
 import StatusPill from '../../components/ui/StatusPill';
 
+const ACCEPTED_FORMATS = {
+  'application/pdf': ['.pdf'],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+  'application/msword': ['.doc'],
+};
+
 export default function JobDetailPage() {
   const { jobId } = useParams();
   const navigate = useNavigate();
@@ -43,6 +49,15 @@ export default function JobDetailPage() {
     const file = files[0];
     if (!file) return;
 
+    // File type validation
+    const validExtensions = ['.pdf', '.doc', '.docx'];
+    const fileName = file.name.toLowerCase();
+    const isValid = validExtensions.some((ext) => fileName.endsWith(ext));
+    if (!isValid) {
+      toast.error('Only PDF and DOCX files are allowed');
+      return;
+    }
+
     setUploading(true);
     const formData = new FormData();
     formData.append('file', file);
@@ -63,8 +78,6 @@ export default function JobDetailPage() {
       setUploading(false);
     }
   }, [jobId, candidateName]);
-
-  // Removed inline dropzone as we use the FileDropzone component now
 
   const handleScore = async (resumeId) => {
     try {
@@ -191,7 +204,12 @@ export default function JobDetailPage() {
                 />
               </div>
 
-              <FileDropzone onDrop={onDrop} isUploading={uploading} />
+              <FileDropzone
+                onDrop={onDrop}
+                isUploading={uploading}
+                accept={ACCEPTED_FORMATS}
+                label="Drag & drop PDF or DOCX resume"
+              />
             </div>
           </ScrollReveal>
         </div>

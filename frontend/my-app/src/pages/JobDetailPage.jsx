@@ -55,11 +55,15 @@ export default function JobDetailPage() {
     }
   }, [jobId, candidateName]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: { 'application/pdf': ['.pdf'] },
-    maxFiles: 1,
-  });
+const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  onDrop,
+  accept: {
+    'application/pdf': ['.pdf'],
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+    'application/msword': ['.doc'],
+  },
+  maxFiles: 1,
+});
 
   const handleScore = async (resumeId) => {
     try {
@@ -119,7 +123,7 @@ export default function JobDetailPage() {
           </div>
           <div>
             <h2 className="heading-feature">Upload Resume</h2>
-            <p className="text-caption text-muted">Add a candidate&apos;s PDF resume for AI screening.</p>
+            <p className="text-caption text-muted">Add a candidate&apos;s PDF/DOCX resume for AI screening.</p>
           </div>
         </div>
 
@@ -149,9 +153,9 @@ export default function JobDetailPage() {
             <>
               <FileText className="w-8 h-8 mx-auto text-muted mb-3 opacity-50" />
               <p className="text-body text-muted">
-                {isDragActive ? 'Drop the PDF here' : 'Drag & drop a PDF resume, or click to select'}
+                {isDragActive ? 'Drop the PDF here' : 'Drag & drop a PDF/DOCX resume, or click to select'}
               </p>
-              <p className="text-micro text-muted/60 mt-1">PDF files only, max 10MB</p>
+              <p className="text-micro text-muted/60 mt-1">PDF or DOCX, max 10MB</p>
             </>
           )}
         </div>
