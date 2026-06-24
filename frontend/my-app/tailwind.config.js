@@ -32,6 +32,10 @@ export default {
         'on-dark': '#ffffff',
         success: '#059669',
         warning: '#d97706',
+        /* Missing aliases for Recruiter pages */
+        'brand-black': '#17171c',
+        'brand-green': '#003c33',
+        'canvas-stone': '#eeece7',
       },
       fontFamily: {
         display: ['"Space Grotesk"', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
@@ -51,6 +55,10 @@ export default {
         'caption': ['14px', { lineHeight: '1.4', letterSpacing: '0', fontWeight: '400' }],
         'mono-label': ['14px', { lineHeight: '1.4', letterSpacing: '0.28px', fontWeight: '400' }],
         'micro': ['12px', { lineHeight: '1.4', letterSpacing: '0', fontWeight: '400' }],
+        /* Missing aliases for Recruiter pages */
+        'display': ['60px', { lineHeight: '1', letterSpacing: '-1.2px', fontWeight: '400' }],
+        'title': ['32px', { lineHeight: '1.2', letterSpacing: '-0.32px', fontWeight: '400' }],
+        'subtitle': ['24px', { lineHeight: '1.3', letterSpacing: '0', fontWeight: '400' }],
       },
       borderRadius: {
         'xs': '4px',

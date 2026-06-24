@@ -209,6 +209,10 @@
     @apply font-display text-section-heading text-primary;
   }
 
+  .section-title {
+    @apply font-display text-section-heading text-primary font-bold tracking-tight;
+  }
+
   .heading-card {
     @apply font-display text-card-heading text-primary;
   }

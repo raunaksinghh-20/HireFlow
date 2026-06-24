@@ -36,12 +36,12 @@ async def upload_resume(
     if not job:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
 
-    # Save file to disk
-    file_path, file_name, file_size_kb = await save_upload_file(file)
+    # Save file to disk (and optionally Supabase)
+    local_file_path, public_url, file_name, file_size_kb = await save_upload_file(file)
 
-# Extract text from PDF or DOCX
+    # Extract text from PDF or DOCX
     try:
-        extracted_text = extract_text_from_file(file_path, file_name)
+        extracted_text = extract_text_from_file(local_file_path, file_name)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -70,7 +70,7 @@ async def upload_resume(
         candidate_name=candidate_name,
         candidate_email=candidate_email,
         candidate_username=current_user.username,
-        file_path=file_path,
+        file_path=public_url if public_url else str(local_file_path),
         file_name=file_name,
         file_size_kb=file_size_kb,
         extracted_text=extracted_text,

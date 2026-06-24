@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "uploads/resumes"
     AVATAR_DIR: str = "uploads/avatars"
     MAX_RESUME_SIZE_MB: int = 10
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
+    SUPABASE_BUCKET_RESUMES: str = "resumes"
+    SUPABASE_BUCKET_AVATARS: str = "avatars"
 
     # ── App ──────────────────────────────────────────────────────
     APP_ENV: str = "development"

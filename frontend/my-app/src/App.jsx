@@ -14,10 +14,10 @@ import TranscriptPage from './pages/TranscriptPage';
 import EvaluationPage from './pages/EvaluationPage';
 
 // Recruiter / HR pages
-import RecruiterDashboard from './pages/recruiter/DashboardPage';
-import RecruiterJobsPage from './pages/recruiter/JobsPage';
-import RecruiterJobDetailPage from './pages/recruiter/JobDetailPage';
-import RecruiterCandidatesPage from './pages/recruiter/CandidatesPage';
+import RecruiterDashboard from './pages/DashboardPage';
+import RecruiterJobsPage from './pages/JobsPage';
+import RecruiterJobDetailPage from './pages/JobDetailPage';
+import RecruiterCandidatesPage from './pages/CandidatesPage';
 import InterviewPage from './pages/InterviewPage';
 import CalendarPage from './pages/CalendarPage';
 import AnalyticsPage from './pages/AnalyticsPage';
