@@ -6,12 +6,14 @@ HireFlow-AI is an end-to-end AI recruitment platform for candidates, recruiters,
 
 - **Role-based workflows**: Separate candidate and recruiter/HR dashboards with protected routes.
 - **Job management**: Recruiters can create, update, list, and soft-delete job postings.
-- **Resume processing**: PDF uploads are validated, stored, text-extracted, and parsed into structured sections.
+- **Resume processing**: PDF uploads are validated, stored, text-extracted, and parsed into structured schemas (`StructuredResume` & `StructuredJD`).
 - **Deterministic ATS scoring**: Candidates are scored with an explainable formula based on required skills, JD keyword overlap, and years of experience.
 - **Candidate ranking**: Scored resumes are ranked by `ranking_score` for each job.
 - **Application tracking**: Candidates can apply to jobs, while recruiters/HR can review and update application status.
 - **Adaptive AI interviews**: Gemini generates interview questions using resume text, job description, ATS score, skill gaps, matched skills, and conversation history.
-- **Vectorless RAG context**: The system injects relevant resume/JD/interview context directly into prompts instead of using a vector database.
+- **Vectorless RAG context & Shared Interview State**: Supports both legacy prompt-stuffing and the new structured mode (`USE_STRUCTURED_CONTEXT=True`) featuring topic-guided context filtering, rolling summarizations, and verified claims ledgers.
+- **Strict Token Budgeting**: The context assembly layer dynamically trims old turns to respect a strict 2,000-token budget.
+- **Multi-Provider LLM Fallback**: A robust failover chain rotates through multiple providers in order (Gemini models -> Groq -> OpenRouter -> Cerebras -> Cohere) to handle rate limits and service spikes transparently.
 - **Voice interview support**: Deepgram powers speech-to-text for candidate answers and text-to-speech for AI questions.
 - **Transcript persistence**: Interview turns are saved in PostgreSQL as JSONB transcript records.
 - **Multi-agent evaluation**: Gemini runs technical, communication, and HR/integrity evaluations, then synthesizes a final recommendation.
@@ -147,7 +149,18 @@ Candidates are ranked per job by `ranking_score DESC`.
 
 ## RAG and Embeddings
 
-The current implementation uses vectorless RAG. Instead of creating embeddings or querying a vector database, the backend builds a structured context object from the candidate resume, job description, ATS score, matched skills, skill gaps, difficulty level, and interview history.
+The system features a dual-mode Vectorless RAG architecture, selectable via the `USE_STRUCTURED_CONTEXT` configuration setting:
+
+### A. Legacy Vectorless RAG (`USE_STRUCTURED_CONTEXT: False`)
+- Assembles prompt contexts directly from raw resume text, job descriptions, ATS scores, and raw conversation history.
+- Context is fed linearly into the LLM prompt.
+
+### B. Shared Interview State & Topic-Guided RAG (`USE_STRUCTURED_CONTEXT: True`)
+- **Document Pre-Structuring**: Parses uploaded resumes and created jobs into structured JSON schemas (`StructuredResume` & `StructuredJD`) via Gemini extraction.
+- **Topic-Guided Filtering**: Dynamically retrieves candidate projects, skills, and responsibilities that correspond *only* to the current active interview topic, avoiding context pollution.
+- **Claims Ledger**: Tracks verified candidate claims and updates capability assessments to prevent rotating models from asking redundant questions.
+- **Token Budgeting & Compression**: Enforces a strict **2,000-token budget** for prompts. If history exceeds this threshold, the context builder compresses older turns into a rolling summary and drops them from the raw turn array.
+- **Rolling Summarization**: Once the interview grows past 5 turns, older turns are folded into a concise 3-5 sentence rolling summary, truncating the active turn list back to the last 3 turns.
 
 Embeddings are not currently used. A future version could add `pgvector`, Pinecone, Chroma, Weaviate, or another vector store for semantic candidate search, large resume retrieval, or cross-job matching.
 
