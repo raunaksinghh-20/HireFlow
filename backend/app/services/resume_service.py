@@ -2,7 +2,6 @@ import re
 import json
 import asyncio
 from pathlib import Path
-from google import genai
 
 
 def extract_text_from_pdf(file_path: str) -> str:
@@ -162,22 +161,18 @@ def extract_candidate_email(text: str) -> str | None:
 
 async def parse_resume_sections_with_gemini(text: str, gemini_api_key: str = None) -> dict:
     """
-    Parse resume using Gemini with strict JSON schema, fallback to regex if it fails.
+    Parse resume using multi-provider LLM with strict JSON schema, fallback to regex if it fails.
     Uses low temperature for deterministic output.
     Returns: { summary, skills:[], experience:[], education:[], projects:[], certifications:[], years_of_experience, raw }
     """
-    # If no API key or extraction fails, return regex-parsed version
+    # If no API key at all, return regex-parsed version
     if not gemini_api_key:
-        return parse_resume_sections(text)
-    
-    try:
-        from app.config.settings import settings
-        api_key = gemini_api_key or settings.GEMINI_API_KEY
-    except Exception:
-        return parse_resume_sections(text)
-    
-    if not api_key:
-        return parse_resume_sections(text)
+        try:
+            from app.config.settings import settings
+            if not settings.GEMINI_API_KEY and not settings.GROQ_API_KEY and not settings.OPENROUTER_API_KEY:
+                return parse_resume_sections(text)
+        except Exception:
+            return parse_resume_sections(text)
     
     extraction_prompt = f"""Extract structured information from this resume text. Return ONLY valid JSON (no markdown, no extra text).
 
@@ -205,18 +200,12 @@ Rules:
 - Return valid JSON ONLY."""
     
     try:
-        client = genai.Client(api_key=api_key)
+        from app.core.llm_client import generate_text
         
-        # Call Gemini with low temperature for determinism
-        response = await asyncio.to_thread(
-            client.models.generate_content,
-            model="gemini-2.5-flash-lite",
-            contents=extraction_prompt,
-            config={"temperature": 0.1, "max_output_tokens": 1024}
-        )
+        response_text = await generate_text(extraction_prompt, temperature=0.1)
         
         # Extract JSON from response
-        response_text = response.text.strip()
+        response_text = response_text.strip()
         if response_text.startswith("```"):
             response_text = response_text.split("```")[1]
             if response_text.startswith("json"):
@@ -247,7 +236,7 @@ Rules:
         return extracted
         
     except (json.JSONDecodeError, KeyError, AttributeError, Exception) as e:
-        # Fallback to regex parser if Gemini fails, returns invalid JSON, or times out
+        # Fallback to regex parser if LLM fails, returns invalid JSON, or times out
         return parse_resume_sections(text)
 
 

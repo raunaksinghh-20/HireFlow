@@ -83,6 +83,7 @@ class Job(Base):
     description = Column(Text, nullable=False)
     required_skills = Column(JSONB, default=list)
     experience_years = Column(Integer, default=0)
+    structured_jd = Column(JSONB)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -114,6 +115,7 @@ class Resume(Base):
     # Extracted content (critical for vectorless RAG)
     extracted_text = Column(Text)
     parsed_sections = Column(JSONB)
+    structured_resume = Column(JSONB)
 
     # ATS results (populated after /ats-score)
     ats_score = Column(Integer)
@@ -157,6 +159,7 @@ class Interview(Base):
     creator = relationship("User", back_populates="interviews")
     transcript = relationship("Transcript", back_populates="interview", uselist=False, cascade="all, delete-orphan")
     evaluation = relationship("Evaluation", back_populates="interview", uselist=False, cascade="all, delete-orphan")
+    interview_state = relationship("InterviewState", back_populates="interview", uselist=False, cascade="all, delete-orphan")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -234,3 +237,25 @@ class ScheduledInterview(Base):
 
     # Relationships
     job = relationship("Job", back_populates="scheduled_interviews")
+
+
+# ══════════════════════════════════════════════════════════════════
+# Interview State (Shared State Object for Multi-LLM Handoff)
+# ══════════════════════════════════════════════════════════════════
+
+class InterviewState(Base):
+    __tablename__ = "interview_state"
+
+    interview_id = Column(UUID(as_uuid=True), ForeignKey("interviews.id", ondelete="CASCADE"), primary_key=True)
+    current_topic = Column(Text)
+    topic_coverage = Column(JSONB, nullable=False, default=dict)
+    candidate_claims = Column(JSONB, nullable=False, default=list)
+    rolling_summary = Column(Text, nullable=False, default="")
+    recent_turns = Column(JSONB, nullable=False, default=list)
+    candidate_profile = Column(JSONB, nullable=False, default=dict)
+    turn_count = Column(Integer, nullable=False, default=0)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    interview = relationship("Interview", back_populates="interview_state")
+

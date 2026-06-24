@@ -103,6 +103,80 @@ Respond ONLY with valid JSON:
 }}"""
 
 
+STRUCTURED_FIRST_QUESTION_PROMPT = """{persona}
+
+CANDIDATE PROFILE SUMMARY:
+{candidate_profile}
+
+RESUME CONTEXT:
+{resume_context}
+
+JOB REQUIREMENTS:
+{jd_context}
+
+Your task: Generate the FIRST interview question.
+
+Rules:
+- Start with an open-ended technical question directly related to the candidate's primary claimed skill from the resume context.
+- Keep the difficulty level moderate (e.g., 2/5).
+- Do NOT ask about their name, introduce yourself, or ask generic questions.
+- Focus on assessment of technical depth.
+
+Respond ONLY with a JSON object:
+{{
+  "question": "your question here",
+  "question_type": "technical_opening",
+  "target_skill": "skill being tested"
+}}"""
+
+
+STRUCTURED_NEXT_QUESTION_PROMPT = """{persona}
+
+CANDIDATE PROFILE:
+{candidate_profile}
+
+RESUME CONTEXT:
+{resume_context}
+
+JOB REQUIREMENTS:
+{jd_context}
+
+TOPIC COVERAGE:
+{topic_coverage}
+
+PENDING CLAIMS TO VERIFY:
+{pending_claim_followups}
+
+ROLLING SUMMARY OF PAST TURNS:
+{rolling_summary}
+
+RECENT TURNS:
+{recent_turns}
+
+CURRENT DIFFICULTY LEVEL: {difficulty_level}/5
+QUESTIONS ASKED SO FAR: {question_count}
+QUESTIONS REMAINING: {questions_remaining}
+
+Your task: Generate the next interview question.
+Decide the next question based on the topic coverage, pending claims, and recent flow.
+- If the last topic was "partial", continue probe or follow_up.
+- If the candidate made a claim that contradicts or seems inflated, challenge it.
+- Otherwise, pick a new topic from Job Requirements that is "not_started" or "partial".
+
+Rules:
+- Never repeat a question already asked.
+- Keep the question concise and focused (max 2 sentences).
+- Adjust difficulty up or down based on performance.
+
+Respond ONLY with valid JSON:
+{{
+  "question": "your question here",
+  "question_type": "follow_up" | "gap_probe" | "challenge" | "escalate" | "next_topic",
+  "difficulty_change": -1 | 0 | 1,
+  "target_skill": "skill being tested"
+}}"""
+
+
 EVALUATION_PROMPT = """You are a senior technical recruiter and organizational psychologist evaluating a completed job interview.
 
 ═══ CANDIDATE RESUME ═══

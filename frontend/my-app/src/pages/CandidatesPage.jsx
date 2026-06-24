@@ -215,6 +215,8 @@ export default function CandidatesPage() {
                           </div>
                         )}
                       </div>
+                    ) : !c.resume_id ? (
+                      <span className="text-muted text-caption py-2 px-3">No Resume</span>
                     ) : (
                       <button
                         onClick={async () => {

@@ -67,8 +67,15 @@ export default function InterviewRoom() {
       startSession(data);
       setTurnCount(1);
       if (mode === 'voice' && data.audio_base64) playAudioBase64(data.audio_base64);
-    } catch {
-      toast.error('Failed to start');
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      if (detail && detail.includes('INTERVIEW_ALREADY_COMPLETED')) {
+        const msg = detail.split('|')[1] || 'You have already completed the interview for this position.';
+        toast.error(msg);
+        navigate('/candidate/interviews');
+      } else {
+        toast.error('Failed to start');
+      }
     } finally {
       setStarting(false);
     }

@@ -63,7 +63,7 @@ export default function JobBrowsePage() {
       formData.append('job_id', selectedJob.id);
       formData.append('candidate_name', user?.full_name || user?.email || 'Candidate');
       const uploadRes = await uploadResume(formData);
-      const resumeId = uploadRes.data.id;
+      const resumeId = uploadRes.data.resume_id;
 
       // 2. Apply to job
       await applyToJob({ job_id: selectedJob.id, resume_id: resumeId });

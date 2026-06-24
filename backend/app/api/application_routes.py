@@ -160,6 +160,7 @@ async def update_application_status(
         app.rejection_reason = None
 
     await db.flush()
+    await db.refresh(app)
 
     # Find resume to return its ID if it exists
     res_result = await db.execute(
@@ -214,6 +215,7 @@ async def update_application_status_by_resume(
         app.rejection_reason = None
 
     await db.flush()
+    await db.refresh(app)
 
     return ApplicationOut(
         id=app.id,

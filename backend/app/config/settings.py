@@ -16,6 +16,10 @@ class Settings(BaseSettings):
 
     # ── AI APIs ──────────────────────────────────────────────────
     GEMINI_API_KEY: str = ""
+    GROQ_API_KEY: str = ""
+    OPENROUTER_API_KEY: str = ""
+    CEREBRAS_API_KEY: str = ""
+    COHERE_API_KEY: str = ""
     DEEPGRAM_API_KEY: str = ""
 
     # ── Email Settings ───────────────────────────────────────────
@@ -35,6 +39,7 @@ class Settings(BaseSettings):
     # ── App ──────────────────────────────────────────────────────
     APP_ENV: str = "development"
     ALLOWED_ORIGINS: str = "http://localhost:5173"
+    USE_STRUCTURED_CONTEXT: bool = False
 
     class Config:
         env_file = ".env"

@@ -9,6 +9,12 @@ from app.models.db_models import Job
 async def create_job(db: AsyncSession, owner_id: UUID, title: str, company: str | None,
                      description: str, required_skills: list, experience_years: int) -> Job:
     """Create a new job posting."""
+    try:
+        from app.services.resume_parser import parse_jd_to_structured
+        structured_jd = await parse_jd_to_structured(description, title)
+    except Exception:
+        structured_jd = None
+
     job = Job(
         owner_id=owner_id,
         title=title,
@@ -16,6 +22,7 @@ async def create_job(db: AsyncSession, owner_id: UUID, title: str, company: str 
         description=description,
         required_skills=required_skills or [],
         experience_years=experience_years,
+        structured_jd=structured_jd,
     )
     db.add(job)
     await db.flush()
@@ -58,6 +65,15 @@ async def update_job(db: AsyncSession, job_id: UUID, owner_id: UUID, **kwargs) -
     for key, value in kwargs.items():
         if value is not None:
             setattr(job, key, value)
+    
+    # If description was updated, regenerate structured_jd
+    if "description" in kwargs and kwargs["description"] is not None:
+        try:
+            from app.services.resume_parser import parse_jd_to_structured
+            job.structured_jd = await parse_jd_to_structured(job.description, job.title)
+        except Exception:
+            pass
+
     await db.flush()
     return job
 

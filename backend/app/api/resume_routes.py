@@ -55,6 +55,12 @@ async def upload_resume(
     except Exception:
         parsed_sections = parse_resume_sections(extracted_text)
     
+    try:
+        from app.services.resume_parser import parse_resume_to_structured
+        structured_resume = await parse_resume_to_structured(extracted_text, candidate_name)
+    except Exception:
+        structured_resume = None
+
     candidate_email = extract_candidate_email(extracted_text)
 
     # Create resume record
@@ -69,6 +75,7 @@ async def upload_resume(
         file_size_kb=file_size_kb,
         extracted_text=extracted_text,
         parsed_sections=parsed_sections,
+        structured_resume=structured_resume,
     )
     db.add(resume)
     await db.flush()

@@ -2,8 +2,6 @@
 import json
 import re
 
-from google import genai
-
 from app.config.settings import settings
 from app.models.db_models import Interview, Transcript, Resume, Job
 from app.core.prompt_templates import (
@@ -98,16 +96,7 @@ async def generate_evaluation(
         transcript_turns=transcript.turns or [],
     )
 
-    client = genai.Client(api_key=settings.GEMINI_API_KEY)
-
-    # Helper function to invoke Gemini in a separate thread
-    async def call_gemini(prompt: str) -> str:
-        response = await asyncio.to_thread(
-            client.models.generate_content,
-            model="gemini-2.5-flash-lite",
-            contents=prompt,
-        )
-        return response.text
+    from app.core.llm_client import generate_text, AllProvidersExhaustedError
 
     # Build prompts for individual specialist agents
     tech_prompt = TECHNICAL_AGENT_PROMPT.format(**context)
@@ -116,9 +105,9 @@ async def generate_evaluation(
 
     # Run agents in parallel to minimize latency
     tech_res, comm_res, hr_res = await asyncio.gather(
-        call_gemini(tech_prompt),
-        call_gemini(comm_prompt),
-        call_gemini(hr_prompt),
+        generate_text(tech_prompt),
+        generate_text(comm_prompt),
+        generate_text(hr_prompt),
         return_exceptions=True
     )
 
@@ -137,7 +126,7 @@ async def generate_evaluation(
     )
 
     # Run synthesis
-    consensus_text = await call_gemini(consensus_prompt)
+    consensus_text = await generate_text(consensus_prompt)
     result = _parse_json_response(consensus_text)
 
     # Ensure all scores are clamped 0-100

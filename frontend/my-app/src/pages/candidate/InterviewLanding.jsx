@@ -1,18 +1,69 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Mic, Type, ArrowRight, ShieldCheck, Clock } from 'lucide-react';
+import { getMyInterviews } from '../../api/interviews';
 
 export default function InterviewLanding() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [mode, setMode] = useState('text');
+  const [checking, setChecking] = useState(true);
+  const [isCompleted, setIsCompleted] = useState(false);
 
   const resumeId = searchParams.get('resumeId');
   const jobId = searchParams.get('jobId');
 
+  useEffect(() => {
+    async function checkStatus() {
+      if (!resumeId || !jobId) {
+        setChecking(false);
+        return;
+      }
+      try {
+        const { data } = await getMyInterviews();
+        const finished = data.some(
+          i => i.resume_id === resumeId && i.job_id === jobId && i.status === 'completed'
+        );
+        setIsCompleted(finished);
+      } catch (err) {
+        console.error('Failed to fetch interview status', err);
+      } finally {
+        setChecking(false);
+      }
+    }
+    checkStatus();
+  }, [resumeId, jobId]);
+
   const handleContinue = () => {
     navigate(`/candidate/interviews/room?resumeId=${resumeId}&jobId=${jobId}&mode=${mode}`);
   };
+
+  if (checking) {
+    return (
+      <div className="page-container max-w-3xl mx-auto text-center py-12">
+        <p className="text-neutral-500">Checking interview status...</p>
+      </div>
+    );
+  }
+
+  if (isCompleted) {
+    return (
+      <div className="page-container max-w-3xl mx-auto text-center py-12 animate-fade-in">
+        <div className="editorial-card shadow-flat mb-8 py-12 flex flex-col items-center">
+          <div className="w-16 h-16 rounded-full bg-deep-green/10 text-deep-green flex items-center justify-center mb-6">
+            <ShieldCheck className="w-8 h-8" />
+          </div>
+          <h1 className="text-display font-bold font-display tracking-tight text-primary mb-4">Interview Completed</h1>
+          <p className="text-neutral-500 text-lg max-w-md mx-auto mb-8">
+            You have already completed the interview for this position. Candidates are not permitted to re-attend completed interviews.
+          </p>
+          <button onClick={() => navigate('/candidate/interviews')} className="btn-primary px-8 py-4">
+            Back to My Interviews
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container max-w-3xl mx-auto">

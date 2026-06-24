@@ -20,8 +20,8 @@ async def start_interview_session(
     # Store state in Redis
     session_token = await session_manager.create_session(state)
 
-    # Generate first question via Gemini
-    question_data = await generate_first_question(state)
+    # Generate first question via Gemini (passing db)
+    question_data = await generate_first_question(state, db)
 
     # Append the first question to conversation history
     state["conversation_history"].append({
@@ -40,7 +40,7 @@ async def start_interview_session(
     return question_data, session_token
 
 
-async def process_answer(state: dict, answer: str) -> dict:
+async def process_answer(state: dict, answer: str, db: AsyncSession = None) -> dict:
     """
     Process a candidate's answer:
     1. Analyze the answer quality
@@ -48,7 +48,7 @@ async def process_answer(state: dict, answer: str) -> dict:
     Returns the full response data.
     """
     # Analyze the answer
-    analysis = await analyze_answer(state, answer)
+    analysis = await analyze_answer(state, answer, db)
 
     question_count = state.get("question_count", 0)
     max_questions = state.get("max_questions", 8)
@@ -62,7 +62,7 @@ async def process_answer(state: dict, answer: str) -> dict:
     next_question_data = None
     if not is_complete:
         # Generate next question
-        next_question_data = await generate_next_question(state, analysis["routing_decision"])
+        next_question_data = await generate_next_question(state, analysis["routing_decision"], db)
         state["difficulty_level"] = next_question_data.get("new_difficulty", state["difficulty_level"])
 
     state["session_complete"] = is_complete

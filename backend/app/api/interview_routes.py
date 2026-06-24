@@ -79,6 +79,20 @@ async def start_interview(
             detail="Run /ats-score before starting an interview",
         )
 
+    # Check if there is already a completed interview for this resume and job
+    comp_result = await db.execute(
+        select(Interview).where(
+            (Interview.resume_id == payload.resume_id) &
+            (Interview.job_id == payload.job_id) &
+            (Interview.status == "completed")
+        )
+    )
+    if comp_result.scalars().first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="INTERVIEW_ALREADY_COMPLETED|You have already completed the interview for this position.",
+        )
+
     # Fetch job
     result = await db.execute(select(Job).where(Job.id == payload.job_id))
     job = result.scalars().first()
@@ -94,7 +108,7 @@ async def start_interview(
     )
     scheduled_interview = sched_result.scalars().first()
     
-    if scheduled_interview and scheduled_interview.status != "cancelled":
+    if scheduled_interview and scheduled_interview.status == "scheduled":
         now = datetime.now(timezone.utc)
         # Ensure start_time is timezone aware
         start_time = scheduled_interview.scheduled_time
@@ -109,7 +123,7 @@ async def start_interview(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"TOO_EARLY|Your interview is scheduled for {formatted_time}. Please return within 10 minutes of the start time."
             )
-        elif diff_minutes > 30:
+        elif diff_minutes > 60:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="MISSED_INTERVIEW|You missed your scheduled interview time. Please request a reschedule."
@@ -152,10 +166,17 @@ async def start_interview(
     }
 
     from app.config.settings import settings
-    if not settings.GEMINI_API_KEY:
+    has_any_llm_key = any([
+        settings.GEMINI_API_KEY,
+        settings.GROQ_API_KEY,
+        settings.OPENROUTER_API_KEY,
+        settings.CEREBRAS_API_KEY,
+        settings.COHERE_API_KEY,
+    ])
+    if not has_any_llm_key:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="GEMINI_API_KEY is not configured in backend/.env. Please add it to start an AI interview."
+            detail="No LLM API key configured in backend/.env. Add at least one of: GEMINI_API_KEY, GROQ_API_KEY, OPENROUTER_API_KEY, CEREBRAS_API_KEY, COHERE_API_KEY."
         )
 
     # Generate first question and store in Redis
@@ -232,7 +253,7 @@ async def submit_answer(
     state["conversation_history"].append(answer_turn)
 
     # Process the answer (analyze + generate next question)
-    result = await process_answer(state, payload.answer)
+    result = await process_answer(state, payload.answer, db)
     analysis = result["analysis"]
 
     # Update answer score in the turn
@@ -397,7 +418,7 @@ async def submit_voice_answer(
     state["conversation_history"].append(answer_turn)
 
     # Process the answer (analyze + generate next question)
-    result = await process_answer(state, transcribed_text)
+    result = await process_answer(state, transcribed_text, db)
     analysis = result["analysis"]
 
     # Update answer score in the turn
