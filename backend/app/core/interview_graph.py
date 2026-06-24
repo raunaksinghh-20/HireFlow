@@ -177,3 +177,58 @@ async def generate_next_question(state: dict, routing_decision: str) -> dict:
         "target_skill": result.get("target_skill", ""),
         "new_difficulty": new_difficulty,
     }
+
+
+# ── LangGraph Integration ────────────────────────────────────────
+
+try:
+    from langgraph.graph import StateGraph, END
+    LANGGRAPH_AVAILABLE = True
+except ImportError:
+    LANGGRAPH_AVAILABLE = False
+
+
+def create_interview_graph():
+    """Create and return a LangGraph StateGraph for interview flow."""
+    if not LANGGRAPH_AVAILABLE:
+        return None
+    
+    graph = StateGraph(InterviewState)
+    
+    # Add nodes (using existing functions)
+    graph.add_node("generate_first_question", generate_first_question)
+    graph.add_node("analyze_answer", analyze_answer)
+    graph.add_node("generate_next_question", generate_next_question)
+    
+    # Set entry point
+    graph.set_entry_point("generate_first_question")
+    
+    # Add edges
+    graph.add_edge("generate_first_question", "analyze_answer")
+    graph.add_conditional_edges(
+        "analyze_answer",
+        lambda x: x.get("routing_decision", "next_topic"),
+        {
+            "follow_up": "generate_next_question",
+            "gap_probe": "generate_next_question",
+            "challenge": "generate_next_question",
+            "escalate": "generate_next_question",
+            "next_topic": "generate_next_question",
+            "complete": END,
+        }
+    )
+    graph.add_edge("generate_next_question", END)
+    
+    return graph.compile()
+
+
+# Cache compiled graph
+_interview_graph = None
+
+
+def get_interview_graph():
+    """Get or create the compiled interview graph."""
+    global _interview_graph
+    if _interview_graph is None and LANGGRAPH_AVAILABLE:
+        _interview_graph = create_interview_graph()
+    return _interview_graph
