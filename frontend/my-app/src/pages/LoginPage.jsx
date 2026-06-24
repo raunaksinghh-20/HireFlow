@@ -6,7 +6,7 @@ import { loginUser } from '../api/auth';
 import useAuthStore from '../store/authStore';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -17,11 +17,12 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await loginUser({ email, password });
+      const response = await loginUser({ username, password });
       console.log("Login response:", response);
       const { data } = response;
       login(data.access_token, {
         id: data.user_id,
+        username: data.username,
         email: data.email,
         full_name: data.full_name,
         role: data.role,
@@ -96,14 +97,14 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="label" htmlFor="login-email">Email</label>
+              <label className="label" htmlFor="login-username">Username</label>
               <input
-                id="login-email"
-                type="email"
+                id="login-username"
+                type="text"
                 className="input-field"
-                placeholder="you@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                placeholder="yourusername"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
                 autoFocus
               />

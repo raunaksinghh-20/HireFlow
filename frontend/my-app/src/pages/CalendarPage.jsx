@@ -14,7 +14,7 @@ export default function CalendarPage() {
 
   // Form states
   const [candidateName, setCandidateName] = useState('');
-  const [candidateEmail, setCandidateEmail] = useState('');
+  const [candidateUsername, setCandidateUsername] = useState('');
   const [dateTime, setDateTime] = useState('');
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function CalendarPage() {
 
   const handleSchedule = async (e) => {
     e.preventDefault();
-    if (!selectedJobId || !candidateName.trim() || !candidateEmail.trim() || !dateTime) {
+    if (!selectedJobId || !candidateName.trim() || !candidateUsername.trim() || !dateTime) {
       toast.error('Please fill in all fields');
       return;
     }
@@ -53,7 +53,7 @@ export default function CalendarPage() {
     const payload = {
       job_id: selectedJobId,
       candidate_name: candidateName.trim(),
-      candidate_email: candidateEmail.trim(),
+      candidate_username: candidateUsername.trim(),
       scheduled_time: new Date(dateTime).toISOString(),
     };
 
@@ -61,7 +61,7 @@ export default function CalendarPage() {
       await scheduleInterview(payload);
       toast.success('Interview scheduled! Invitation email sent.');
       setCandidateName('');
-      setCandidateEmail('');
+      setCandidateUsername('');
       setDateTime('');
       loadSlots(selectedJobId);
     } catch (err) {
@@ -167,15 +167,15 @@ export default function CalendarPage() {
                 </div>
 
                 <div>
-                  <label className="label-form mb-1">Candidate Email Address</label>
+                  <label className="label-form mb-1">Candidate Username</label>
                   <div className="relative">
-                    <Mail className="absolute left-3.5 top-3.5 w-4.5 h-4.5 text-muted" />
+                    <User className="absolute left-3.5 top-3.5 w-4.5 h-4.5 text-muted" />
                     <input
-                      type="email"
+                      type="text"
                       className="input-field pl-11"
-                      placeholder="e.g. alice@example.com"
-                      value={candidateEmail}
-                      onChange={(e) => setCandidateEmail(e.target.value)}
+                      placeholder="e.g. alicesmith"
+                      value={candidateUsername}
+                      onChange={(e) => setCandidateUsername(e.target.value)}
                       required
                     />
                   </div>
@@ -250,7 +250,7 @@ export default function CalendarPage() {
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-caption text-muted mt-1.5">
                           <span className="flex items-center gap-1">
-                            <Mail className="w-3.5 h-3.5" /> {slot.candidate_email}
+                            <User className="w-3.5 h-3.5" /> @{slot.candidate_username}
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5" /> {formatTime(slot.scheduled_time)}

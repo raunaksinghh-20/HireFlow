@@ -27,7 +27,7 @@ export default function JobDetailPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [candidateName, setCandidateName] = useState('');
-  const [candidateEmail, setCandidateEmail] = useState('');
+  const [candidateUsername, setCandidateUsername] = useState('');
 
   const fetchData = () => {
     Promise.all([getJob(jobId), getResumes(jobId)])
@@ -63,8 +63,8 @@ export default function JobDetailPage() {
     formData.append('file', file);
     formData.append('job_id', jobId);
     formData.append('candidate_name', candidateName.trim());
-    if (candidateEmail.trim()) {
-      formData.append('candidate_email', candidateEmail.trim());
+    if (candidateUsername.trim()) {
+      formData.append('candidate_username', candidateUsername.trim());
     }
 
     try {
@@ -196,11 +196,11 @@ export default function JobDetailPage() {
 
               <div className="mb-4">
                 <input
-                  type="email"
+                  type="text"
                   className="input-field bg-transparent border-neutral-300 focus:border-brand-black px-2 mt-2"
-                  placeholder="Candidate email (optional)..."
-                  value={candidateEmail}
-                  onChange={(e) => setCandidateEmail(e.target.value)}
+                  placeholder="Candidate username (optional)..."
+                  value={candidateUsername}
+                  onChange={(e) => setCandidateUsername(e.target.value)}
                 />
               </div>
 

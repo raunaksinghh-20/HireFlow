@@ -34,11 +34,26 @@ export default function MyInterviewsPage() {
   const completedKeys = new Set(completedInterviews.map(interviewKey));
 
   // Filter application invites out once an interview exists for the same resume/job.
-  const scheduledApps = applications.filter(
-    (app) =>
-      ['interview_scheduled', 'approved', 'shortlisted'].includes(app.status) &&
-      !completedKeys.has(interviewKey(app))
-  );
+  const scheduledFromSlots = mySlots
+    .filter((slot) => slot.status !== 'cancelled' && !completedKeys.has(`${slot.resume_id || ''}:${slot.job_id || ''}`))
+    .map((slot) => ({
+      id: slot.id,
+      job_id: slot.job_id,
+      job_title: slot.job_title,
+      company: slot.company,
+      resume_id: slot.resume_id,
+      status: 'interview_scheduled',
+    }));
+
+  const scheduledFromApps = applications
+    .filter(
+      (app) =>
+        ['interview_scheduled', 'approved', 'shortlisted'].includes(app.status) &&
+        !completedKeys.has(interviewKey(app)) &&
+        !mySlots.some(slot => slot.job_id === app.job_id)
+    );
+
+  const scheduledApps = scheduledFromSlots.concat(scheduledFromApps);
   const activeInterviews = interviews.filter(
     (interview) => interview.status === 'active' && !completedKeys.has(interviewKey(interview))
   );

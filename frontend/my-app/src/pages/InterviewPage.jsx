@@ -21,6 +21,11 @@ export default function InterviewPage() {
   const [interviews, setInterviews] = useState([]);
   const [selectedHistoryJob, setSelectedHistoryJob] = useState('');
   const [historyLoading, setHistoryLoading] = useState(true);
+  
+  // Reschedule States
+  const [blockedReason, setBlockedReason] = useState(null); // 'too_early' | 'missed'
+  const [blockedMessage, setBlockedMessage] = useState('');
+  const [rescheduleRequested, setRescheduleRequested] = useState(false);
 
   // Audio Recording States
   const [isRecording, setIsRecording] = useState(false);
@@ -86,6 +91,7 @@ export default function InterviewPage() {
       return;
     }
     setStarting(true);
+    setBlockedReason(null);
     try {
       const { data } = await startInterview({
         resume_id: resumeId,
@@ -100,7 +106,36 @@ export default function InterviewPage() {
         playAudioBase64(data.audio_base64);
       }
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to start interview');
+      const detail = err.response?.data?.detail;
+      if (typeof detail === 'string' && detail.includes('|')) {
+        const [code, msg] = detail.split('|');
+        if (code === 'TOO_EARLY') {
+          setBlockedReason('too_early');
+          setBlockedMessage(msg);
+        } else if (code === 'MISSED_INTERVIEW') {
+          setBlockedReason('missed');
+          setBlockedMessage(msg);
+        } else {
+          toast.error(msg);
+        }
+      } else {
+        toast.error(detail || 'Failed to start interview');
+      }
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  const handleReschedule = async () => {
+    setStarting(true);
+    try {
+      // Need to import requestReschedule from api
+      const { requestReschedule } = await import('../api/interviews');
+      await requestReschedule(resumeId, jobId);
+      setRescheduleRequested(true);
+      toast.success('Reschedule request sent to the recruiter.');
+    } catch (err) {
+      toast.error('Failed to send reschedule request');
     } finally {
       setStarting(false);
     }
@@ -304,7 +339,7 @@ export default function InterviewPage() {
                       )}
                     </div>
                     <p className="text-caption text-muted">
-                      {interview.candidate_email || 'No email'} · {interview.mode} · {new Date(interview.created_at).toLocaleString()}
+                      {interview.candidate_username ? `@${interview.candidate_username}` : 'No username'} · {interview.mode} · {new Date(interview.created_at).toLocaleString()}
                     </p>
                   </div>
 
@@ -360,7 +395,31 @@ export default function InterviewPage() {
               : 'Select a candidate from a job page to start an interview.'}
           </p>
 
-          {resumeId && jobId && (
+          {blockedReason && (
+            <div className="mb-8 p-6 rounded-lg border border-hairline bg-soft-stone text-left shadow-sm">
+              <h3 className="font-semibold text-ink mb-2">
+                {blockedReason === 'too_early' ? 'Interview Scheduled' : 'Interview Missed'}
+              </h3>
+              <p className="text-muted text-sm mb-4">{blockedMessage}</p>
+              
+              {blockedReason === 'missed' && !rescheduleRequested && (
+                <button 
+                  onClick={handleReschedule} 
+                  disabled={starting} 
+                  className="btn-primary w-full justify-center"
+                >
+                  {starting ? 'Sending...' : 'Request Reschedule'}
+                </button>
+              )}
+              {blockedReason === 'missed' && rescheduleRequested && (
+                <div className="text-success text-sm flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" /> Reschedule request sent! The recruiter will contact you.
+                </div>
+              )}
+            </div>
+          )}
+
+          {!blockedReason && resumeId && jobId && (
             <div className="space-y-6">
               {/* Mode Toggle */}
               <div className="inline-flex p-1 bg-soft-stone rounded-sm">

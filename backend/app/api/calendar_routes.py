@@ -35,7 +35,7 @@ async def schedule_interview(
         select(Resume)
         .where(Resume.job_id == payload.job_id)
         .where(
-            (Resume.candidate_email == payload.candidate_email) |
+            (Resume.candidate_username == payload.candidate_username) |
             (Resume.candidate_name == payload.candidate_name)
         )
     )
@@ -43,24 +43,39 @@ async def schedule_interview(
     if not resume:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No uploaded resume found matching this candidate email or name. Please upload a resume first."
+            detail="No uploaded resume found matching this candidate username or name. Please upload a resume first."
         )
 
     # Create scheduled slot
     slot = ScheduledInterview(
         job_id=payload.job_id,
         candidate_name=payload.candidate_name,
-        candidate_email=payload.candidate_email,
+        candidate_username=payload.candidate_username,
         scheduled_time=payload.scheduled_time,
         status="pending",
     )
     db.add(slot)
+    
+    # Also update the application status to interview_scheduled
+    from app.models.db_models import Application
+    application_result = await db.execute(
+        select(Application).where(
+            (Application.job_id == payload.job_id) &
+            (Application.resume_id == resume.id)
+        )
+    )
+    application = application_result.scalars().first()
+    if application:
+        application.status = "interview_scheduled"
+
     await db.flush()
 
-    # Trigger email invitation to candidate
+    # Trigger email invitation to candidate (assuming username can be used to lookup email or is email)
     try:
+        # TODO: Lookup user email from username if we want to send an actual email, 
+        # or skip if email is no longer collected
         send_interview_invitation_email(
-            candidate_email=payload.candidate_email,
+            candidate_email=payload.candidate_username, # Mocking sending to username for now
             candidate_name=payload.candidate_name,
             job_title=job.title,
             resume_id=str(resume.id),
@@ -94,11 +109,31 @@ async def my_slots(
 ):
     """Retrieve all scheduled interview slots for the current candidate."""
     result = await db.execute(
-        select(ScheduledInterview)
-        .where(ScheduledInterview.candidate_email == current_user.email)
+        select(ScheduledInterview, Job, Resume)
+        .join(Job, ScheduledInterview.job_id == Job.id)
+        .outerjoin(Resume, (Resume.job_id == Job.id) & (
+            (Resume.candidate_username == ScheduledInterview.candidate_username) | 
+            (Resume.candidate_name == ScheduledInterview.candidate_name)
+        ))
+        .where(ScheduledInterview.candidate_username == current_user.username)
         .order_by(ScheduledInterview.scheduled_time.asc())
     )
-    return result.scalars().all()
+    
+    out = []
+    for slot, job, resume in result:
+        out.append(ScheduledInterviewOut(
+            id=slot.id,
+            job_id=slot.job_id,
+            candidate_name=slot.candidate_name,
+            candidate_username=slot.candidate_username,
+            scheduled_time=slot.scheduled_time,
+            status=slot.status,
+            created_at=slot.created_at,
+            job_title=job.title,
+            company=job.company,
+            resume_id=resume.id if resume else None,
+        ))
+    return out
 
 @router.delete("/calendar/slots/{slot_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_slot(

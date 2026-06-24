@@ -18,7 +18,8 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    email = Column(String(255), unique=True, nullable=False, index=True)
+    username = Column(String(255), unique=True, nullable=False, index=True)
+    email = Column(String(255), unique=True, nullable=True, index=True)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=False)
     role = Column(String(20), default="candidate")  # candidate | recruiter | hr
@@ -105,6 +106,7 @@ class Resume(Base):
     uploaded_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     candidate_name = Column(String(255), nullable=False)
     candidate_email = Column(String(255))
+    candidate_username = Column(String(255))
     file_path = Column(String(500), nullable=False)
     file_name = Column(String(255), nullable=False)
     file_size_kb = Column(Integer)
@@ -225,7 +227,7 @@ class ScheduledInterview(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     job_id = Column(UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False)
     candidate_name = Column(String(255), nullable=False)
-    candidate_email = Column(String(255), nullable=False)
+    candidate_username = Column(String(255), nullable=False)
     scheduled_time = Column(DateTime(timezone=True), nullable=False)
     status = Column(String(20), default="pending")  # pending | completed | cancelled
     created_at = Column(DateTime(timezone=True), server_default=func.now())

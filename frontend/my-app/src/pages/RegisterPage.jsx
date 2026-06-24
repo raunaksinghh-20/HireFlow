@@ -6,7 +6,7 @@ import { registerUser } from '../api/auth';
 import useAuthStore from '../store/authStore';
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({ full_name: '', email: '', password: '', confirm: '', role: 'candidate' });
+  const [form, setForm] = useState({ full_name: '', username: '', email: '', password: '', confirm: '', role: 'candidate' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -27,6 +27,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const { data } = await registerUser({
+        username: form.username,
         email: form.email,
         password: form.password,
         full_name: form.full_name,
@@ -34,6 +35,7 @@ export default function RegisterPage() {
       });
       login(data.access_token, {
         id: data.user_id,
+        username: data.username,
         email: data.email,
         full_name: data.full_name,
         role: data.role,
@@ -110,8 +112,12 @@ export default function RegisterPage() {
               <input id="reg-name" name="full_name" className="input-field" placeholder="Jane Smith" value={form.full_name} onChange={handleChange} required autoFocus />
             </div>
             <div>
-              <label className="label" htmlFor="reg-email">Email</label>
-              <input id="reg-email" name="email" type="email" className="input-field" placeholder="jane@company.com" value={form.email} onChange={handleChange} required />
+              <label className="label" htmlFor="reg-username">Username</label>
+              <input id="reg-username" name="username" type="text" className="input-field" placeholder="janedoe" value={form.username} onChange={handleChange} required />
+            </div>
+            <div>
+              <label className="label" htmlFor="reg-email">Email (Optional)</label>
+              <input id="reg-email" name="email" type="email" className="input-field" placeholder="jane@company.com" value={form.email} onChange={handleChange} />
             </div>
             <div>
               <label className="label" htmlFor="reg-password">Password</label>

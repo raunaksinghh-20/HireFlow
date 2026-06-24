@@ -178,25 +178,37 @@ export default function CandidatesPage() {
                             )}
                           </>
                         ) : (
-                          <button
-                            onClick={async (e) => {
-                              e.preventDefault();
-                              try {
-                                await updateApplicationStatusByResume(c.resume_id, { status: 'interview_scheduled' });
-                                toast.success('Application approved! Redirecting to Calendar...');
-                              } catch (err) {
-                                if (err.response?.status === 404) {
-                                  toast.error("Candidate hasn't officially applied. Redirecting to Calendar...");
-                                } else {
-                                  toast.error('Failed to schedule interview');
-                                }
-                              }
-                              setTimeout(() => navigate('/calendar'), 1500);
-                            }}
-                            className="btn-primary text-sm py-2 px-4 whitespace-nowrap"
-                          >
-                            Approve & Schedule
-                          </button>
+                          <div className="flex gap-2">
+                            {(!application || !['interview_scheduled', 'rejected'].includes(application.status)) && (
+                              <button
+                                onClick={async (e) => {
+                                  e.preventDefault();
+                                  try {
+                                    await updateApplicationStatusByResume(c.resume_id, { status: 'interview_scheduled' });
+                                    toast.success('Application approved! Redirecting to Calendar...');
+                                  } catch (err) {
+                                    if (err.response?.status === 404) {
+                                      toast.success("Ready to schedule! Redirecting to Calendar...");
+                                    } else {
+                                      toast.error('Failed to schedule interview');
+                                    }
+                                  }
+                                  setTimeout(() => navigate('/calendar'), 1500);
+                                }}
+                                className="btn-primary text-sm py-2 px-4 whitespace-nowrap"
+                              >
+                                Approve & Schedule
+                              </button>
+                            )}
+                            {application && !['rejected'].includes(application.status) && (
+                              <button
+                                onClick={() => updateDecision(application.id, 'rejected')}
+                                className="btn-secondary text-sm py-2 px-3 whitespace-nowrap"
+                              >
+                                Reject
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     ) : (
@@ -270,34 +282,82 @@ export default function CandidatesPage() {
                       </div>
                     </div>
                   </div>
-                  {completedInterview?.evaluation && (
-                    <div className="shrink-0 flex flex-wrap items-center justify-end gap-2 ml-4">
-                      <button
-                        onClick={() => navigate(`/transcript/${completedInterview.id}`)}
-                        className="btn-secondary text-sm py-2 px-3 whitespace-nowrap"
-                      >
-                        <FileText className="w-4 h-4 mr-1" />
-                        Transcript
-                      </button>
-                      <button
-                        onClick={() => navigate(`/evaluation?interviewId=${completedInterview.id}`)}
-                        className="btn-primary text-sm py-2 px-3 whitespace-nowrap"
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        Evaluation
-                      </button>
-                      {!['selected', 'rejected'].includes(app.status) && (
-                        <>
-                          <button onClick={() => updateDecision(app.id, 'selected')} className="btn-primary text-sm py-2 px-3 whitespace-nowrap">
-                            Select
+                  <div className="shrink-0 flex flex-wrap items-center justify-end gap-2 ml-4">
+                    {completedInterview?.evaluation ? (
+                      <>
+                        <button
+                          onClick={() => navigate(`/transcript/${completedInterview.id}`)}
+                          className="btn-secondary text-sm py-2 px-3 whitespace-nowrap"
+                        >
+                          <FileText className="w-4 h-4 mr-1" />
+                          Transcript
+                        </button>
+                        <button
+                          onClick={() => navigate(`/evaluation?interviewId=${completedInterview.id}`)}
+                          className="btn-primary text-sm py-2 px-3 whitespace-nowrap"
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          Evaluation
+                        </button>
+                        {!['selected', 'rejected'].includes(app.status) && (
+                          <>
+                            <button onClick={() => updateDecision(app.id, 'selected')} className="btn-primary text-sm py-2 px-3 whitespace-nowrap">
+                              Select
+                            </button>
+                            <button onClick={() => updateDecision(app.id, 'rejected')} className="btn-secondary text-sm py-2 px-3 whitespace-nowrap">
+                              Reject
+                            </button>
+                          </>
+                        )}
+                      </>
+                    ) : app.ats_score !== null && app.ats_score !== undefined ? (
+                      <>
+                        {!['interview_scheduled', 'rejected'].includes(app.status) && (
+                          <button
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              try {
+                                await updateApplicationStatusByResume(app.resume_id, { status: 'interview_scheduled' });
+                                toast.success('Application approved! Redirecting to Calendar...');
+                              } catch (err) {
+                                if (err.response?.status === 404) {
+                                  toast.success("Ready to schedule! Redirecting to Calendar...");
+                                } else {
+                                  toast.error('Failed to schedule interview');
+                                }
+                              }
+                              setTimeout(() => navigate('/calendar'), 1500);
+                            }}
+                            className="btn-primary text-sm py-2 px-4 whitespace-nowrap"
+                          >
+                            Approve & Schedule
                           </button>
+                        )}
+                        {!['rejected'].includes(app.status) && (
                           <button onClick={() => updateDecision(app.id, 'rejected')} className="btn-secondary text-sm py-2 px-3 whitespace-nowrap">
                             Reject
                           </button>
-                        </>
-                      )}
-                    </div>
-                  )}
+                        )}
+                      </>
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          const id = toast.loading('Scoring candidate...');
+                          try {
+                            await scoreResume(app.resume_id);
+                            toast.success('ATS score calculated!', { id });
+                            const res = await listApplications();
+                            setAllApplications(res.data);
+                          } catch (e) {
+                            toast.error('Failed to score candidate', { id });
+                          }
+                        }}
+                        className="btn-pill-outline"
+                      >
+                        Score Now
+                      </button>
+                    )}
+                  </div>
                 </div>
               )})}
             </div>

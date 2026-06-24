@@ -8,13 +8,14 @@ from sqlalchemy import select
 
 from app.config.database import get_db
 from app.api.dependencies import get_current_user
-from app.models.db_models import User, Resume, Job, Interview, Transcript, Evaluation, Application
+from app.models.db_models import User, Resume, Job, Interview, Transcript, Evaluation, Application, ScheduledInterview
 from app.schemas.all_schemas import (
     StartInterviewRequest, StartInterviewResponse,
     SubmitAnswerRequest, SubmitAnswerResponse,
     QuitInterviewRequest, QuitInterviewResponse,
     TranscriptOut, TranscriptTurnOut,
     EvaluationRequest, EvaluationOut, InterviewOut,
+    RescheduleRequest,
 )
 from app.services.interview_service import start_interview_session, process_answer, close_interview
 from app.services.transcript_service import save_turn, get_transcript, finalize_transcript, ensure_transcript
@@ -83,6 +84,36 @@ async def start_interview(
     job = result.scalars().first()
     if not job:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
+
+    # Enforce strict scheduling bounds if scheduled
+    sched_result = await db.execute(
+        select(ScheduledInterview).where(
+            (ScheduledInterview.job_id == payload.job_id) &
+            (ScheduledInterview.candidate_username == current_user.username)
+        ).order_by(ScheduledInterview.created_at.desc())
+    )
+    scheduled_interview = sched_result.scalars().first()
+    
+    if scheduled_interview and scheduled_interview.status != "cancelled":
+        now = datetime.now(timezone.utc)
+        # Ensure start_time is timezone aware
+        start_time = scheduled_interview.scheduled_time
+        if start_time.tzinfo is None:
+            start_time = start_time.replace(tzinfo=timezone.utc)
+            
+        diff_minutes = (now - start_time).total_seconds() / 60.0
+        
+        if diff_minutes < -10:
+            formatted_time = start_time.strftime('%I:%M %p')
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"TOO_EARLY|Your interview is scheduled for {formatted_time}. Please return within 10 minutes of the start time."
+            )
+        elif diff_minutes > 30:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="MISSED_INTERVIEW|You missed your scheduled interview time. Please request a reschedule."
+            )
 
     # Create Interview record
     interview = Interview(
@@ -751,3 +782,40 @@ async def list_interviews(
             )
         )
     return out_list
+
+@router.post("/reschedule-request", status_code=status.HTTP_200_OK)
+async def reschedule_request(
+    payload: RescheduleRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Sends a rescheduling request to the recruiter/HR."""
+    # Fetch job and resume
+    result = await db.execute(select(Job).where(Job.id == payload.job_id))
+    job = result.scalars().first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    result = await db.execute(select(Resume).where(Resume.id == payload.resume_id))
+    resume = result.scalars().first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    # Fetch recruiter email
+    result = await db.execute(select(User).where(User.id == job.owner_id))
+    recruiter = result.scalars().first()
+    recruiter_email = recruiter.email if recruiter else "hr@hireflow.ai"
+
+    # Send email
+    from app.services.notification_service import send_reschedule_request_email
+    try:
+        send_reschedule_request_email(
+            recruiter_email=recruiter_email,
+            candidate_name=resume.candidate_name,
+            job_title=job.title,
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Failed to send reschedule email: {e}")
+        
+    return {"message": "Reschedule request sent successfully."}

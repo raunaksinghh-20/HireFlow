@@ -63,6 +63,7 @@ async def upload_resume(
         uploaded_by=current_user.id,
         candidate_name=candidate_name,
         candidate_email=candidate_email,
+        candidate_username=current_user.username,
         file_path=file_path,
         file_name=file_name,
         file_size_kb=file_size_kb,

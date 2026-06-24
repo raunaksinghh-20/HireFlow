@@ -9,14 +9,15 @@ from datetime import datetime
 # ══════════════════════════════════════════════════════════════════
 
 class UserCreate(BaseModel):
-    email: EmailStr
+    username: str = Field(min_length=3)
+    email: Optional[EmailStr] = None
     password: str = Field(min_length=6)
     full_name: str = Field(min_length=1)
     role: Optional[str] = "candidate"  # candidate | recruiter | hr
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    username: str
     password: str
 
 
@@ -25,7 +26,8 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int
     user_id: UUID
-    email: str
+    username: str
+    email: Optional[str] = None
     full_name: str
     role: str
     profile_picture: Optional[str] = None
@@ -33,7 +35,8 @@ class TokenResponse(BaseModel):
 
 class UserOut(BaseModel):
     id: UUID
-    email: str
+    username: str
+    email: Optional[str] = None
     full_name: str
     role: str
     profile_picture: Optional[str] = None
@@ -147,7 +150,7 @@ class RankedCandidateOut(BaseModel):
     resume_id: UUID
     candidate_name: str
     candidate_email: Optional[str] = None
-    ats_score: int
+    ats_score: Optional[int] = None
     ranking_score: float
     matched_skills: List[str] = []
     skill_gaps: List[str] = []
@@ -205,6 +208,11 @@ class QuitInterviewResponse(BaseModel):
     interview_id: UUID
     interview_complete: bool = True
     message: str = "Interview ended. Generate the candidate evaluation from current progress."
+
+
+class RescheduleRequest(BaseModel):
+    job_id: UUID
+    resume_id: UUID
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -271,7 +279,7 @@ class EvaluationOut(BaseModel):
 class ScheduledInterviewCreate(BaseModel):
     job_id: UUID
     candidate_name: str
-    candidate_email: str
+    candidate_username: str
     scheduled_time: datetime
 
 
@@ -279,10 +287,13 @@ class ScheduledInterviewOut(BaseModel):
     id: UUID
     job_id: UUID
     candidate_name: str
-    candidate_email: str
+    candidate_username: str
     scheduled_time: datetime
     status: str
     created_at: datetime
+    job_title: Optional[str] = None
+    company: Optional[str] = None
+    resume_id: Optional[UUID] = None
 
     class Config:
         from_attributes = True
@@ -327,7 +338,8 @@ class UserProfileUpdate(BaseModel):
 
 class UserProfileOut(BaseModel):
     id: UUID
-    email: str
+    username: str
+    email: Optional[str] = None
     full_name: str
     role: str
     profile_picture: Optional[str] = None

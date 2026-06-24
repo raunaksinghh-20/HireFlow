@@ -205,7 +205,7 @@ def send_screening_completed_email(candidate_email: str, candidate_name: str, jo
 def send_interview_invitation_email(candidate_email: str, candidate_name: str, job_title: str, resume_id: str, job_id: str):
     """Notify candidate that they are invited to schedule/take an interview."""
     # Build actual frontend link for the candidate room
-    link = f"http://localhost:5173/interviews?resumeId={resume_id}&jobId={job_id}"
+    link = f"http://localhost:5173/candidate/interviews/landing?resumeId={resume_id}&jobId={job_id}"
     
     subject = f"Invitation to AI Interview: {job_title} — HireFlow AI"
     text = (
@@ -255,6 +255,34 @@ def send_interview_completed_email(recruiter_email: str, candidate_name: str, jo
         <div style="margin: 25px 0;">
             <a href="http://localhost:5173/dashboard" style="background-color: #17171c; color: white; padding: 10px 20px; text-decoration: none; border-radius: 32px; font-size: 14px; font-weight: bold;">
                 Go to Dashboard
+            </a>
+        </div>
+        <p style="color: #6e6e73; font-size: 12px; margin-top: 30px;">Sent automatically by HireFlow AI Recruitment System.</p>
+    </div>
+    """
+    send_email(recruiter_email, subject, text, html)
+
+
+def send_reschedule_request_email(recruiter_email: str, candidate_name: str, job_title: str):
+    """Notify recruiter that a candidate missed their interview and is requesting a reschedule."""
+    subject = f"Reschedule Request: {candidate_name} — {job_title}"
+    text = (
+        f"Hi Recruiter,\n\n"
+        f"Candidate {candidate_name} missed their scheduled AI-powered interview for the {job_title} position.\n\n"
+        f"They have formally requested a reschedule. Please navigate to your dashboard/calendar to set a new time for them.\n\n"
+        f"Best regards,\nHireFlow AI Notifications"
+    )
+    html = f"""
+    <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eeece7;">
+        <h2 style="color: #17171c; font-family: 'Space Grotesk', sans-serif;">Reschedule Request</h2>
+        <p>Hi Recruiter,</p>
+        <p>Candidate <strong>{candidate_name}</strong> missed their scheduled interview for <strong>{job_title}</strong>.</p>
+        <div style="margin: 20px 0; padding: 15px; border-left: 4px solid #17171c; background-color: #fcfcfc;">
+            They have requested a new interview time.
+        </div>
+        <div style="margin: 25px 0;">
+            <a href="http://localhost:5173/calendar" style="background-color: #17171c; color: white; padding: 10px 20px; text-decoration: none; border-radius: 32px; font-size: 14px; font-weight: bold;">
+                Go to Calendar
             </a>
         </div>
         <p style="color: #6e6e73; font-size: 12px; margin-top: 30px;">Sent automatically by HireFlow AI Recruitment System.</p>

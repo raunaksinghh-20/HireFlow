@@ -6,17 +6,18 @@ from app.models.db_models import User
 from app.core.security import hash_password, verify_password
 
 
-async def register_user(db: AsyncSession, email: str, password: str, full_name: str, role: str = "candidate") -> User:
-    """Create a new user. Raises 409 if email already exists."""
-    result = await db.execute(select(User).where(User.email == email))
+async def register_user(db: AsyncSession, username: str, password: str, full_name: str, email: str = None, role: str = "candidate") -> User:
+    """Create a new user. Raises 409 if username already exists."""
+    result = await db.execute(select(User).where(User.username == username))
     existing = result.scalars().first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Email already registered",
+            detail="Username already registered",
         )
 
     user = User(
+        username=username,
         email=email,
         hashed_password=hash_password(password),
         full_name=full_name,
@@ -27,15 +28,15 @@ async def register_user(db: AsyncSession, email: str, password: str, full_name: 
     return user
 
 
-async def authenticate_user(db: AsyncSession, email: str, password: str) -> User:
+async def authenticate_user(db: AsyncSession, username: str, password: str) -> User:
     """Verify credentials. Raises 401 for bad creds, 403 for deactivated accounts."""
-    result = await db.execute(select(User).where(User.email == email))
+    result = await db.execute(select(User).where(User.username == username))
     user = result.scalars().first()
 
     if not user or not verify_password(password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
+            detail="Invalid username or password",
         )
 
     if not user.is_active:
