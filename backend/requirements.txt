@@ -20,3 +20,4 @@ cerebras-cloud-sdk
 groq
 cohere
 openai
+aiosqlite
