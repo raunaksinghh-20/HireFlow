@@ -72,7 +72,7 @@ export default function EvaluationPage() {
   const hireBadge = HIRE_BADGES[evaluation.hire_recommendation] || HIRE_BADGES.maybe;
 
   return (
-    <div className="page-container max-w-6xl mx-auto">
+    <div className="page-container">
       <ScrollReveal>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12 pb-8 border-b-4 border-brand-black">
           <div>

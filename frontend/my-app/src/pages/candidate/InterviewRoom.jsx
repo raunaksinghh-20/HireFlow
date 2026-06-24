@@ -189,7 +189,7 @@ export default function InterviewRoom() {
   }
 
   return (
-    <div className="page-container max-w-4xl flex flex-col h-[calc(100vh-8rem)] px-0 lg:px-0 py-0 lg:py-4">
+    <div className="page-container max-w-4xl mx-auto flex flex-col h-[calc(100vh-8rem)] px-0 lg:px-0 py-0 lg:py-4">
       {/* Header */}
       <div className="bg-dark-navy text-white p-6 rounded-t-3xl flex items-center justify-between shrink-0">
         <div>

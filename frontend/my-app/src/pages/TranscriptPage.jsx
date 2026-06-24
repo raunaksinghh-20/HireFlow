@@ -34,7 +34,7 @@ export default function TranscriptPage() {
   );
 
   return (
-    <div className="page-container animate-fade-in max-w-4xl mx-auto">
+    <div className="page-container animate-fade-in">
       {/* Header */}
       <div className="card mb-8">
         <p className="mono-label mb-2">Transcript</p>

@@ -95,7 +95,12 @@ async def list_applications(
     - Candidates see only their own applications.
     - Recruiters/HR see applications for all jobs (or filtered by job_id).
     """
-    query = select(Application, Job, User).join(Job, Application.job_id == Job.id).join(User, Application.candidate_id == User.id)
+    query = (
+        select(Application, Job, User, Resume)
+        .join(Job, Application.job_id == Job.id)
+        .join(User, Application.candidate_id == User.id)
+        .outerjoin(Resume, Resume.id == Application.resume_id)
+    )
 
     if current_user.role == "candidate":
         query = query.where(Application.candidate_id == current_user.id)
@@ -108,17 +113,17 @@ async def list_applications(
     results = result.all()
 
     out_list = []
-    for app, job, candidate in results:
-        # For candidate role, they should NOT see ATS score unless recruiters decide to show it (actually, user says: "once the candidate applies for the job then only the hr and recruiter can see it's ATS score and approve him/her...").
-        # So we omit or zero out ATS score for candidate view to respect the requirement.
-        app_ats = app.ats_score if current_user.role in ("recruiter", "hr") else None
+    for app, job, candidate, resume in results:
+        resume_id = resume.id if resume else app.resume_id
+        ats_score = resume.ats_score if resume else app.ats_score
+        app_ats = ats_score if current_user.role in ("recruiter", "hr") else None
 
         out_list.append(
             ApplicationOut(
                 id=app.id,
                 candidate_id=app.candidate_id,
                 job_id=app.job_id,
-                resume_id=app.resume_id,
+                resume_id=resume_id,
                 status=app.status,
                 ats_score=app_ats,
                 rejection_reason=app.rejection_reason,
@@ -156,11 +161,18 @@ async def update_application_status(
 
     await db.flush()
 
+    # Find resume to return its ID if it exists
+    res_result = await db.execute(
+        select(Resume).where((Resume.job_id == app.job_id) & (Resume.uploaded_by == app.candidate_id))
+    )
+    resume = res_result.scalars().first()
+    resume_id = resume.id if resume else app.resume_id
+
     return ApplicationOut(
         id=app.id,
         candidate_id=app.candidate_id,
         job_id=app.job_id,
-        resume_id=app.resume_id,
+        resume_id=resume_id,
         status=app.status,
         ats_score=app.ats_score,
         rejection_reason=app.rejection_reason,
@@ -181,7 +193,13 @@ async def update_application_status_by_resume(
     db: AsyncSession = Depends(get_db),
 ):
     """Allows Recruiter/HR to approve or reject a candidate application using resume_id."""
-    query = select(Application, Job, User).join(Job, Application.job_id == Job.id).join(User, Application.candidate_id == User.id).where(Application.resume_id == resume_id)
+    query = (
+        select(Application, Job, User)
+        .join(Job, Application.job_id == Job.id)
+        .join(User, Application.candidate_id == User.id)
+        .join(Resume, Resume.id == Application.resume_id)
+        .where(Resume.id == resume_id)
+    )
     result = await db.execute(query)
     found = result.first()
     if not found:
@@ -189,6 +207,7 @@ async def update_application_status_by_resume(
 
     app, job, candidate = found
     app.status = payload.status
+    app.resume_id = resume_id
     if payload.status == "rejected":
         app.rejection_reason = payload.rejection_reason
     else:
@@ -200,7 +219,7 @@ async def update_application_status_by_resume(
         id=app.id,
         candidate_id=app.candidate_id,
         job_id=app.job_id,
-        resume_id=app.resume_id,
+        resume_id=resume_id,
         status=app.status,
         ats_score=app.ats_score,
         rejection_reason=app.rejection_reason,

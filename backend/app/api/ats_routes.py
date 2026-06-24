@@ -47,6 +47,20 @@ async def score_resume(
     resume.skill_gaps = scoring["skill_gaps"]
     resume.matched_skills = scoring["matched_skills"]
     resume.ranking_score = scoring["ranking_score"]
+    
+    # Also update Application cached ats_score and resume_id if application exists
+    from app.models.db_models import Application
+    app_result = await db.execute(
+        select(Application).where(
+            (Application.candidate_id == resume.uploaded_by) & 
+            (Application.job_id == job.id)
+        )
+    )
+    application = app_result.scalars().first()
+    if application:
+        application.ats_score = scoring["ats_score"]
+        application.resume_id = resume.id
+
     await db.flush()
 
     # Trigger email notification
@@ -84,24 +98,38 @@ async def rank_candidates(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Return all scored candidates for a job ranked by ranking_score."""
+    """Return all candidates who applied for a job ranked by ranking_score."""
+    from app.models.db_models import Application, Resume, User as DBUser
+    
+    # Query Applications joined with Resume and User
     result = await db.execute(
-        select(Resume)
-        .where(Resume.job_id == job_id)
+        select(Application, Resume, DBUser)
+        .join(DBUser, Application.candidate_id == DBUser.id)
+        .outerjoin(Resume, (Resume.job_id == Application.job_id) & (Resume.uploaded_by == Application.candidate_id))
+        .where(Application.job_id == job_id)
         .order_by(Resume.ranking_score.desc().nulls_last())
     )
-    resumes = result.scalars().all()
+    raw_applications = result.all()
+
+    # Deduplicate by candidate ID to keep only the highest scoring resume/application combo
+    seen_candidates = set()
+    applications = []
+    for app, r, u in raw_applications:
+        if u.id not in seen_candidates:
+            seen_candidates.add(u.id)
+            applications.append((app, r, u))
 
     return [
         RankedCandidateOut(
             rank=idx + 1,
-            resume_id=r.id,
-            candidate_name=r.candidate_name,
-            candidate_email=r.candidate_email,
-            ats_score=r.ats_score,
-            ranking_score=r.ranking_score or 0,
-            matched_skills=r.matched_skills or [],
-            skill_gaps=r.skill_gaps or [],
+            resume_id=r.id if r else None,
+            candidate_id=u.id,
+            candidate_name=u.full_name,
+            candidate_email=u.email,
+            ats_score=app.ats_score,
+            ranking_score=r.ranking_score if r else 0,
+            matched_skills=r.matched_skills if r else [],
+            skill_gaps=r.skill_gaps if r else [],
         )
-        for idx, r in enumerate(resumes)
+        for idx, (app, r, u) in enumerate(applications)
     ]

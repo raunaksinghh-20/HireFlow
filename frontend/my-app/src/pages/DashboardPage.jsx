@@ -2,25 +2,37 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Briefcase, FileText, MessageSquare, TrendingUp, ArrowRight, Plus, ChevronRight } from 'lucide-react';
 import { getJobs } from '../api/jobs';
+import { getAnalyticsOverview } from '../api/analytics';
 import useAuthStore from '../store/authStore';
+import AnimatedCounter from '../components/ui/AnimatedCounter';
+import ScrollReveal from '../components/ui/ScrollReveal';
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [statsData, setStatsData] = useState({
+    total_jobs: 0,
+    total_candidates: 0,
+    total_interviews: 0,
+    average_ats_score: 0
+  });
 
   useEffect(() => {
-    getJobs()
-      .then((res) => setJobs(res.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    Promise.allSettled([
+      getJobs(),
+      getAnalyticsOverview()
+    ]).then(([jobsRes, analyticsRes]) => {
+      if (jobsRes.status === 'fulfilled') setJobs(jobsRes.value.data);
+      if (analyticsRes.status === 'fulfilled') setStatsData(analyticsRes.value.data);
+    }).finally(() => setLoading(false));
   }, []);
 
   const stats = [
-    { label: 'Active Positions', value: jobs.length, icon: Briefcase, accent: 'bg-deep-green' },
-    { label: 'Total Candidates', value: '—', icon: FileText, accent: 'bg-action-blue' },
-    { label: 'Interviews', value: '—', icon: MessageSquare, accent: 'bg-coral' },
-    { label: 'Avg ATS Score', value: '—', icon: TrendingUp, accent: 'bg-primary' },
+    { label: 'Active Positions', value: statsData.total_jobs, icon: Briefcase, color: 'text-deep-green', link: '/jobs' },
+    { label: 'Total Candidates', value: statsData.total_candidates, icon: FileText, color: 'text-action-blue', link: '/candidates' },
+    { label: 'Interviews', value: statsData.total_interviews, icon: MessageSquare, color: 'text-coral', link: '/interviews' },
+    { label: 'Avg ATS Score', value: statsData.average_ats_score ? Math.round(statsData.average_ats_score) : 0, icon: TrendingUp, color: 'text-primary', suffix: '%', link: '/analytics' },
   ];
 
   const firstName = user?.full_name?.split(' ')[0] || 'there';
@@ -40,15 +52,22 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
-        {stats.map(({ label, value, icon: Icon, accent }) => (
-          <div key={label} className="stat-card">
-            <div className={`w-9 h-9 ${accent} rounded-sm flex items-center justify-center mb-3`}>
-              <Icon className="w-4.5 h-4.5 text-on-dark" />
-            </div>
-            <div className="font-display text-card-heading text-primary">{value}</div>
-            <div className="text-caption text-muted">{label}</div>
-          </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        {stats.map(({ label, value, icon: Icon, color, suffix, link }, idx) => (
+          <ScrollReveal key={label} delay={idx * 60}>
+            <Link to={link} className="card-hover flex flex-col h-full hover:no-underline group cursor-pointer block">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`w-10 h-10 flex items-center justify-center rounded-sm bg-soft-stone ${color}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <span className="text-micro text-muted opacity-0 group-hover:opacity-100 transition-opacity font-mono">View details →</span>
+              </div>
+              <div className="text-3xl font-display font-bold text-primary mb-1">
+                {typeof value === 'number' ? <AnimatedCounter value={value} suffix={suffix || ''} /> : value}
+              </div>
+              <div className="text-sm font-medium text-muted">{label}</div>
+            </Link>
+          </ScrollReveal>
         ))}
       </div>
 

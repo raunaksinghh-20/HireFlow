@@ -23,6 +23,26 @@ async def update_profile(
     db: AsyncSession = Depends(get_db),
 ):
     """Update current user's profile information."""
+    access_token = None
+    expires_in = None
+
+    if payload.username is not None and payload.username != current_user.username:
+        from sqlalchemy import select
+        result = await db.execute(select(User).where(User.username == payload.username))
+        existing_user = result.scalars().first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Username already taken",
+            )
+        current_user.username = payload.username
+        
+        # Generate new token
+        from app.core.security import create_access_token
+        access_token, expires_in = create_access_token(
+            {"sub": str(current_user.id), "username": current_user.username, "role": current_user.role}
+        )
+
     if payload.full_name is not None:
         current_user.full_name = payload.full_name
     if payload.phone is not None:
@@ -37,7 +57,23 @@ async def update_profile(
         current_user.skills = payload.skills
 
     await db.flush()
-    return current_user
+    
+    # Construct response dictionary including token information
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email,
+        "full_name": current_user.full_name,
+        "role": current_user.role,
+        "profile_picture": current_user.profile_picture,
+        "phone": current_user.phone,
+        "bio": current_user.bio,
+        "linkedin_url": current_user.linkedin_url,
+        "experience_years": current_user.experience_years,
+        "skills": current_user.skills,
+        "access_token": access_token,
+        "expires_in": expires_in,
+    }
 
 
 @router.post("/picture", response_model=UserProfileOut)

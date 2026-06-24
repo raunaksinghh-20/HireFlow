@@ -16,6 +16,15 @@ async def register_user(db: AsyncSession, username: str, password: str, full_nam
             detail="Username already registered",
         )
 
+    if email:
+        result_email = await db.execute(select(User).where(User.email == email))
+        existing_email = result_email.scalars().first()
+        if existing_email:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email already registered",
+            )
+
     user = User(
         username=username,
         email=email,
@@ -30,7 +39,7 @@ async def register_user(db: AsyncSession, username: str, password: str, full_nam
 
 async def authenticate_user(db: AsyncSession, username: str, password: str) -> User:
     """Verify credentials. Raises 401 for bad creds, 403 for deactivated accounts."""
-    result = await db.execute(select(User).where(User.username == username))
+    result = await db.execute(select(User).where((User.username == username) | (User.email == username)))
     user = result.scalars().first()
 
     if not user or not verify_password(password, user.hashed_password):

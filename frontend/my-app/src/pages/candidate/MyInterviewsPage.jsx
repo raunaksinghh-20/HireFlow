@@ -35,15 +35,18 @@ export default function MyInterviewsPage() {
 
   // Filter application invites out once an interview exists for the same resume/job.
   const scheduledFromSlots = mySlots
-    .filter((slot) => slot.status !== 'cancelled' && !completedKeys.has(`${slot.resume_id || ''}:${slot.job_id || ''}`))
-    .map((slot) => ({
-      id: slot.id,
-      job_id: slot.job_id,
-      job_title: slot.job_title,
-      company: slot.company,
-      resume_id: slot.resume_id,
-      status: 'interview_scheduled',
-    }));
+    .filter((slot) => slot.status !== 'cancelled' && !completedKeys.has(`:${slot.job_id || ''}`))
+    .map((slot) => {
+      const app = applications.find(a => a.job_id === slot.job_id);
+      return {
+        id: slot.id,
+        job_id: slot.job_id,
+        job_title: slot.job_title || app?.job_title || 'Position',
+        company: slot.company || app?.company || 'Company',
+        resume_id: app?.resume_id,
+        status: 'interview_scheduled',
+      };
+    });
 
   const scheduledFromApps = applications
     .filter(

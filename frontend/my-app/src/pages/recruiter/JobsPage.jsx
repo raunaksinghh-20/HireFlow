@@ -18,7 +18,7 @@ export default function JobsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchJobs = () => {
-    getJobs().then((res) => setJobs(res.data)).catch(() => {}).finally(() => setLoading(false));
+    getJobs().then((res) => setJobs(res.data)).catch(() => { }).finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchJobs(); }, []);
@@ -51,13 +51,13 @@ export default function JobsPage() {
 
   const filteredJobs = searchQuery
     ? jobs.filter(j =>
-        j.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (j.company || '').toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      j.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (j.company || '').toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : jobs;
 
   return (
-    <div className="page-container max-w-5xl">
+    <div className="page-container">
       <ScrollReveal>
         <div className="flex items-end justify-between mb-10">
           <div>
@@ -154,7 +154,7 @@ export default function JobsPage() {
                       <span>·</span>
                       <span>{job.experience_years || 0}+ years exp</span>
                     </div>
-                    
+
                     {(job.required_skills || []).length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {job.required_skills.slice(0, 5).map((skill) => (

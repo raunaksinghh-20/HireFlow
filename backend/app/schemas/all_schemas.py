@@ -147,7 +147,8 @@ class ATSScoreResponse(BaseModel):
 
 class RankedCandidateOut(BaseModel):
     rank: int
-    resume_id: UUID
+    resume_id: Optional[UUID] = None
+    candidate_id: Optional[UUID] = None
     candidate_name: str
     candidate_email: Optional[str] = None
     ats_score: Optional[int] = None
@@ -328,6 +329,7 @@ class AnalyticsOverviewOut(BaseModel):
 # ══════════════════════════════════════════════════════════════════
 
 class UserProfileUpdate(BaseModel):
+    username: Optional[str] = None
     full_name: Optional[str] = None
     phone: Optional[str] = None
     bio: Optional[str] = None
@@ -348,6 +350,8 @@ class UserProfileOut(BaseModel):
     linkedin_url: Optional[str] = None
     experience_years: int = 0
     skills: List[str] = []
+    access_token: Optional[str] = None
+    expires_in: Optional[int] = None
 
     class Config:
         from_attributes = True

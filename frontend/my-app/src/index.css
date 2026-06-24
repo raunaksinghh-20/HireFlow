@@ -22,12 +22,15 @@
   ::-webkit-scrollbar {
     width: 5px;
   }
+
   ::-webkit-scrollbar-track {
     background: transparent;
   }
+
   ::-webkit-scrollbar-thumb {
     @apply bg-hairline rounded-full;
   }
+
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-muted;
   }
@@ -39,80 +42,56 @@
 }
 
 @layer components {
+
   /* ── Buttons ─────────────────────────────────────────── */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2
-           bg-primary text-on-primary font-medium text-btn
-           px-6 py-3 rounded-pill
-           transition-all duration-200
-           hover:bg-ink hover:shadow-lg
-           active:scale-[0.98]
-           disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none;
+    @apply inline-flex items-center justify-center gap-2 bg-primary text-on-primary font-medium text-btn px-6 py-3 rounded-pill transition-all duration-200 hover:bg-ink hover:shadow-lg active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2
-           bg-transparent text-ink font-medium text-btn
-           px-4 py-2 rounded-xs
-           border-b border-transparent
-           transition-all duration-200
-           hover:border-ink;
+    @apply inline-flex items-center justify-center gap-2 bg-transparent text-ink font-medium text-btn px-4 py-2 rounded-xs border-b border-transparent transition-all duration-200 hover:border-ink;
   }
 
   .btn-pill-outline {
-    @apply inline-flex items-center justify-center gap-2
-           bg-transparent text-primary font-medium text-btn
-           px-4 py-1.5 rounded-xl
-           border border-hairline
-           transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 bg-transparent text-primary font-medium text-btn px-4 py-1.5 rounded-xl border border-hairline transition-all duration-200;
   }
+
   .btn-pill-outline:hover {
     @apply border-primary;
     background: rgba(23, 23, 28, 0.05);
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2
-           text-muted font-medium text-btn
-           px-3 py-2 rounded-sm
-           transition-all duration-200
-           hover:text-ink;
+    @apply inline-flex items-center justify-center gap-2 text-muted font-medium text-btn px-3 py-2 rounded-sm transition-all duration-200 hover:text-ink;
   }
+
   .btn-ghost:hover {
     background: rgba(238, 236, 231, 0.6);
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2
-           text-error font-medium text-btn
-           px-5 py-2.5 rounded-pill
-           transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 text-error font-medium text-btn px-5 py-2.5 rounded-pill transition-all duration-200;
     background: rgba(179, 0, 0, 0.08);
     border: 1px solid rgba(179, 0, 0, 0.15);
   }
+
   .btn-danger:hover {
     background: rgba(179, 0, 0, 0.15);
   }
 
   .btn-coral {
-    @apply inline-flex items-center justify-center gap-2
-           bg-coral text-white font-medium text-btn
-           px-6 py-3 rounded-pill
-           transition-all duration-200
-           active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-2 bg-coral text-white font-medium text-btn px-6 py-3 rounded-pill transition-all duration-200 active:scale-[0.98];
   }
+
   .btn-coral:hover {
     background: rgba(255, 119, 89, 0.9);
   }
 
   /* ── Input Fields ───────────────────────────────────── */
   .input-field {
-    @apply w-full bg-canvas border border-hairline rounded-sm
-           px-4 py-3 text-body text-ink
-           placeholder:text-muted
-           transition-all duration-200
-           focus:outline-none focus:border-form-focus;
+    @apply w-full bg-canvas border border-hairline rounded-sm px-4 py-3 text-body text-ink placeholder:text-muted transition-all duration-200 focus:outline-none focus:border-form-focus;
   }
+
   .input-field:focus {
     box-shadow: 0 0 0 3px rgba(155, 96, 170, 0.15);
   }
@@ -122,16 +101,12 @@
   }
 
   .select-field {
-    @apply w-full bg-canvas border border-hairline rounded-sm
-           px-4 py-3 text-body text-ink
-           placeholder:text-muted
-           transition-all duration-200
-           focus:outline-none focus:border-form-focus
-           appearance-none cursor-pointer bg-no-repeat;
+    @apply w-full bg-canvas border border-hairline rounded-sm px-4 py-3 text-body text-ink placeholder:text-muted transition-all duration-200 focus:outline-none focus:border-form-focus appearance-none cursor-pointer bg-no-repeat;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2393939f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-position: right 1rem center;
     padding-right: 2.5rem;
   }
+
   .select-field:focus {
     box-shadow: 0 0 0 3px rgba(155, 96, 170, 0.15);
   }
@@ -144,12 +119,33 @@
   .card-hover {
     @apply bg-canvas border border-hairline rounded-sm p-6 transition-all duration-200 hover:shadow-sm;
   }
+
   .card-hover:hover {
     border-color: #93939f;
   }
 
   .card-stone {
-    @apply bg-soft-stone rounded-sm p-6;
+    @apply bg-transparent rounded-sm p-6;
+  }
+
+  .editorial-card {
+    @apply bg-canvas border-2 border-primary rounded-sm p-8;
+  }
+
+  .editorial-card-hover {
+    @apply bg-canvas border-2 border-primary rounded-sm p-6 transition-all duration-200 hover:shadow-flat;
+  }
+
+  .shadow-flat {
+    box-shadow: 4px 4px 0px 0px #17171c;
+  }
+
+  .shadow-flat-sm {
+    box-shadow: 2px 2px 0px 0px #17171c;
+  }
+
+  .border-brand-black {
+    border-color: #17171c;
   }
 
   .dark-band {
@@ -196,17 +192,11 @@
   }
 
   .skill-chip {
-    @apply inline-flex items-center
-           px-3 py-1 rounded-xl
-           text-micro font-medium
-           border border-hairline text-slate
-           transition-all duration-150
-           hover:border-primary hover:text-primary;
+    @apply inline-flex items-center px-3 py-1 rounded-xl text-micro font-medium border border-hairline text-slate transition-all duration-150 hover:border-primary hover:text-primary;
   }
 
   .skill-chip-active {
-    @apply inline-flex items-center px-3 py-1 rounded-xl text-micro font-medium
-           border border-coral text-coral;
+    @apply inline-flex items-center px-3 py-1 rounded-xl text-micro font-medium border border-coral text-coral;
     background: rgba(255, 119, 89, 0.05);
   }
 
@@ -233,7 +223,7 @@
 
   /* ── Layout ────────────────────────────────────────── */
   .page-container {
-    @apply max-w-6xl mx-auto px-6 lg:px-8 py-10;
+    @apply w-full max-w-none px-6 lg:px-12 py-10;
   }
 
   .section-divider {
@@ -242,18 +232,31 @@
 
   /* ── Stat Card ─────────────────────────────────────── */
   .stat-card {
-    @apply bg-soft-stone rounded-sm p-6 flex flex-col gap-1;
+    @apply bg-canvas border border-hairline rounded-sm p-6 flex flex-col gap-1 transition-all duration-200 hover:shadow-sm;
+  }
+
+  .stat-card:hover {
+    border-color: #93939f;
   }
 
   /* ── Score Colors ──────────────────────────────────── */
-  .score-high { @apply text-success; }
-  .score-mid { @apply text-warning; }
-  .score-low { @apply text-error; }
+  .score-high {
+    @apply text-success;
+  }
+
+  .score-mid {
+    @apply text-warning;
+  }
+
+  .score-low {
+    @apply text-error;
+  }
 
   /* ── Empty State ───────────────────────────────────── */
   .empty-state {
     @apply text-center py-16;
   }
+
   .empty-state-icon {
     @apply w-12 h-12 mx-auto text-muted mb-4 opacity-60;
   }
@@ -265,13 +268,13 @@
 
   /* ── Table Row ─────────────────────────────────────── */
   .table-row {
-    @apply flex items-center justify-between py-4 px-2
-           border-b border-hairline
-           transition-colors duration-150;
+    @apply flex items-center justify-between py-4 px-2 border-b border-hairline transition-colors duration-150;
   }
+
   .table-row:last-child {
     @apply border-0;
   }
+
   .table-row:hover {
     background: rgba(238, 236, 231, 0.4);
   }

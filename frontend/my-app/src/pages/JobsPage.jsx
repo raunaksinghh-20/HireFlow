@@ -1,17 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Briefcase, X, Calendar, Users, ChevronRight } from 'lucide-react';
+import { Plus, Briefcase, X, Calendar, Users, ChevronRight, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getJobs, createJob, deleteJob } from '../api/jobs';
+import { getJobs, createJob, deleteJob, updateJob } from '../api/jobs';
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
-    title: '', company: '', description: '', required_skills: '', experience_years: 0,
+    title: '', company: '', description: '', required_skills: '', experience_years: 0, vacant_positions: 1, deadline: '',
   });
   const [submitting, setSubmitting] = useState(false);
+
+  const [editingJob, setEditingJob] = useState(null);
+  const [editForm, setEditForm] = useState({
+    title: '', company: '', description: '', required_skills: '', experience_years: 0, vacant_positions: 1, deadline: '',
+  });
 
   const fetchJobs = () => {
     getJobs().then((res) => setJobs(res.data)).catch(() => {}).finally(() => setLoading(false));
@@ -24,10 +29,16 @@ export default function JobsPage() {
     setSubmitting(true);
     try {
       const skills = form.required_skills.split(',').map((s) => s.trim()).filter(Boolean);
-      await createJob({ ...form, required_skills: skills, experience_years: parseInt(form.experience_years) || 0 });
+      await createJob({
+        ...form,
+        required_skills: skills,
+        experience_years: parseInt(form.experience_years) || 0,
+        vacant_positions: parseInt(form.vacant_positions) || 1,
+        deadline: form.deadline ? new Date(form.deadline).toISOString() : null,
+      });
       toast.success('Job created successfully!');
       setShowForm(false);
-      setForm({ title: '', company: '', description: '', required_skills: '', experience_years: 0 });
+      setForm({ title: '', company: '', description: '', required_skills: '', experience_years: 0, vacant_positions: 1, deadline: '' });
       fetchJobs();
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to create job');
@@ -43,6 +54,41 @@ export default function JobsPage() {
       toast.success('Job deleted');
       fetchJobs();
     } catch { toast.error('Failed to delete job'); }
+  };
+
+  const handleEdit = (job) => {
+    setEditingJob(job);
+    setEditForm({
+      title: job.title || '',
+      company: job.company || '',
+      description: job.description || '',
+      required_skills: (job.required_skills || []).join(', '),
+      experience_years: job.experience_years || 0,
+      vacant_positions: job.vacant_positions || 1,
+      deadline: job.deadline ? new Date(job.deadline).toISOString().split('T')[0] : '',
+    });
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const skills = editForm.required_skills.split(',').map((s) => s.trim()).filter(Boolean);
+      await updateJob(editingJob.id, {
+        ...editForm,
+        required_skills: skills,
+        experience_years: parseInt(editForm.experience_years) || 0,
+        vacant_positions: parseInt(editForm.vacant_positions) || 1,
+        deadline: editForm.deadline ? new Date(editForm.deadline).toISOString() : null,
+      });
+      toast.success('Job updated successfully!');
+      setEditingJob(null);
+      fetchJobs();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to update job');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -88,6 +134,16 @@ export default function JobsPage() {
                 <input type="number" min="0" className="input-field" value={form.experience_years} onChange={(e) => setForm({ ...form, experience_years: e.target.value })} />
               </div>
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="label">Vacant Positions</label>
+                <input type="number" min="1" className="input-field" value={form.vacant_positions} onChange={(e) => setForm({ ...form, vacant_positions: e.target.value })} />
+              </div>
+              <div>
+                <label className="label">Application Deadline</label>
+                <input type="date" className="input-field" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
+              </div>
+            </div>
             <div className="flex items-center gap-3 pt-2">
               <button type="submit" disabled={submitting} className="btn-primary">
                 {submitting ? 'Creating...' : 'Create Position'}
@@ -123,7 +179,7 @@ export default function JobsPage() {
                       {job.title}
                     </h3>
                   </div>
-                  <div className="flex items-center gap-4 text-caption text-muted mb-3">
+                  <div className="flex items-center gap-4 text-caption text-muted mb-3 flex-wrap">
                     {job.company && <span className="font-medium text-ink">{job.company}</span>}
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5" />
@@ -133,6 +189,11 @@ export default function JobsPage() {
                       <Users className="w-3.5 h-3.5" />
                       {job.experience_years || 0}+ years
                     </span>
+                    <span>·</span>
+                    <span>{job.vacant_positions || 1} vacant positions</span>
+                    {job.deadline && (
+                      <span className="text-coral font-medium">· Deadline: {new Date(job.deadline).toLocaleDateString()}</span>
+                    )}
                   </div>
                   {(job.required_skills || []).length > 0 && (
                     <div className="flex flex-wrap gap-2">
@@ -145,15 +206,22 @@ export default function JobsPage() {
                     </div>
                   )}
                 </Link>
-                <div className="flex items-center gap-2 ml-4 shrink-0">
+                <div className="flex items-center gap-1 ml-4 shrink-0">
+                  <button
+                    onClick={() => handleEdit(job)}
+                    className="btn-ghost text-muted hover:text-ink opacity-0 group-hover:opacity-100 transition-all p-2"
+                    title="Edit job"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => handleDelete(job.id)}
-                    className="btn-ghost text-muted hover:text-error opacity-0 group-hover:opacity-100 transition-all"
+                    className="btn-ghost text-muted hover:text-error opacity-0 group-hover:opacity-100 transition-all p-2"
                     title="Delete job"
                   >
                     <X className="w-4 h-4" />
                   </button>
-                  <Link to={`/jobs/${job.id}`} className="btn-ghost text-muted group-hover:text-ink">
+                  <Link to={`/jobs/${job.id}`} className="btn-ghost text-muted group-hover:text-ink p-2">
                     <ChevronRight className="w-4 h-4" />
                   </Link>
                 </div>
@@ -162,6 +230,66 @@ export default function JobsPage() {
           ))}
         </div>
       )}
+
+      {/* Edit Job Modal */}
+      {editingJob && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="card max-w-2xl w-full p-8 relative shadow-2xl my-8 max-h-[90vh] overflow-y-auto animate-slide-down bg-canvas">
+            <button
+              onClick={() => setEditingJob(null)}
+              className="absolute top-4 right-4 p-2 text-muted hover:text-ink transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <h3 className="heading-hero text-2xl mb-6">Edit Position</h3>
+            <form onSubmit={handleUpdate} className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="label">Job Title *</label>
+                  <input className="input-field" value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} required />
+                </div>
+                <div>
+                  <label className="label">Company Name</label>
+                  <input className="input-field" value={editForm.company} onChange={(e) => setEditForm({ ...editForm, company: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <label className="label">Job Description *</label>
+                <textarea className="input-field min-h-[120px] resize-y" value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} required />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="label">Required Skills (comma-separated)</label>
+                  <input className="input-field" value={editForm.required_skills} onChange={(e) => setEditForm({ ...editForm, required_skills: e.target.value })} />
+                </div>
+                <div>
+                  <label className="label">Experience Needed (Years)</label>
+                  <input type="number" min="0" className="input-field" value={editForm.experience_years} onChange={(e) => setEditForm({ ...editForm, experience_years: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="label">Vacant Positions</label>
+                  <input type="number" min="1" className="input-field" value={editForm.vacant_positions} onChange={(e) => setEditForm({ ...editForm, vacant_positions: e.target.value })} />
+                </div>
+                <div>
+                  <label className="label">Application Deadline</label>
+                  <input type="date" className="input-field" value={editForm.deadline} onChange={(e) => setEditForm({ ...editForm, deadline: e.target.value })} />
+                </div>
+              </div>
+              <div className="pt-4 flex justify-end gap-3">
+                <button type="button" onClick={() => setEditingJob(null)} className="btn-ghost">
+                  Cancel
+                </button>
+                <button type="submit" disabled={submitting} className="btn-primary">
+                  {submitting ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

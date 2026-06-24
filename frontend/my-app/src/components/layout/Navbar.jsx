@@ -57,7 +57,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 px-4 pt-4">
-      <div className="max-w-6xl mx-auto">
+      <div className="w-full">
         <div className="flex items-center justify-between min-h-16 rounded-[2rem] border border-white/45 bg-white/25 px-5 py-3 backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-white/20">
           {/* Logo */}
           <Link to={role === 'candidate' ? '/candidate/dashboard' : '/dashboard'} className="flex items-center gap-2.5 shrink-0">

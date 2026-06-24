@@ -41,7 +41,7 @@ function AppLayout() {
         <Outlet />
       </main>
       <footer className="border-t border-hairline py-6">
-        <div className="max-w-6xl mx-auto px-6 lg:px-8 flex items-center justify-between">
+        <div className="w-full px-6 lg:px-12 flex items-center justify-between">
           <span className="text-micro text-muted">© 2026 HireFlow AI</span>
           <span className="text-micro text-muted">AI-Powered Recruitment</span>
         </div>

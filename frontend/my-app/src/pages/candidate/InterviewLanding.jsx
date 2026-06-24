@@ -15,7 +15,7 @@ export default function InterviewLanding() {
   };
 
   return (
-    <div className="page-container max-w-3xl">
+    <div className="page-container max-w-3xl mx-auto">
       <div className="text-center mb-12">
         <h1 className="text-display font-bold font-display tracking-tight text-primary mb-4">Interview Setup</h1>
         <p className="text-neutral-500 text-lg">Please review the instructions and select your preferred interview mode.</p>

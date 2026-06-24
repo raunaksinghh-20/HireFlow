@@ -47,6 +47,15 @@ async def schedule_interview(
         )
 
     # Create scheduled slot
+    user_result = await db.execute(
+        select(User).where(
+            (User.id == resume.uploaded_by) | 
+            (User.username == payload.candidate_username)
+        )
+    )
+    candidate_user = user_result.scalars().first()
+    candidate_email = candidate_user.email if candidate_user else (resume.candidate_email or payload.candidate_username)
+
     slot = ScheduledInterview(
         job_id=payload.job_id,
         candidate_name=payload.candidate_name,
@@ -70,12 +79,10 @@ async def schedule_interview(
 
     await db.flush()
 
-    # Trigger email invitation to candidate (assuming username can be used to lookup email or is email)
+    # Trigger email invitation to candidate
     try:
-        # TODO: Lookup user email from username if we want to send an actual email, 
-        # or skip if email is no longer collected
         send_interview_invitation_email(
-            candidate_email=payload.candidate_username, # Mocking sending to username for now
+            candidate_email=candidate_email,
             candidate_name=payload.candidate_name,
             job_title=job.title,
             resume_id=str(resume.id),

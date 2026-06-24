@@ -7,12 +7,14 @@ import { getProfile, updateProfile, uploadProfilePicture } from '../api/profile'
 export default function ProfilePage() {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
+  const login = useAuthStore((s) => s.login);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   
   const [profile, setProfile] = useState({
+    username: '',
     full_name: '',
     phone: '',
     bio: '',
@@ -27,6 +29,7 @@ export default function ProfilePage() {
     getProfile()
       .then((res) => {
         setProfile({
+          username: res.data.username || '',
           full_name: res.data.full_name || '',
           phone: res.data.phone || '',
           bio: res.data.bio || '',
@@ -70,12 +73,24 @@ export default function ProfilePage() {
     setSaving(true);
     try {
       const { data } = await updateProfile(profile);
-      setUser({
-        ...user,
-        full_name: data.full_name,
-        role: data.role,
-        profile_picture: data.profile_picture,
-      });
+      if (data.access_token) {
+        login(data.access_token, {
+          id: data.id,
+          username: data.username,
+          email: data.email,
+          full_name: data.full_name,
+          role: data.role,
+          profile_picture: data.profile_picture,
+        });
+      } else {
+        setUser({
+          ...user,
+          username: data.username,
+          full_name: data.full_name,
+          role: data.role,
+          profile_picture: data.profile_picture,
+        });
+      }
       toast.success('Profile updated successfully!');
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to save profile');
@@ -127,7 +142,7 @@ export default function ProfilePage() {
     : null;
 
   return (
-    <div className="page-container animate-fade-in max-w-4xl mx-auto">
+    <div className="page-container animate-fade-in">
       {/* Header */}
       <div className="mb-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -158,6 +173,7 @@ export default function ProfilePage() {
             </div>
             
             <h3 className="font-display text-card-heading text-primary font-semibold">{profile.full_name}</h3>
+            <p className="text-caption text-primary font-medium mt-0.5">@{profile.username}</p>
             <p className="text-caption text-muted mb-4">{user?.email}</p>
             <p className="text-body text-center text-muted italic text-sm">
               &ldquo;{profile.bio || 'Add a bio to introduce yourself...'}&rdquo;
@@ -172,7 +188,11 @@ export default function ProfilePage() {
               Personal Details
             </h3>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="label" htmlFor="prof-username">Username</label>
+                <input id="prof-username" name="username" className="input-field" value={profile.username} onChange={handleChange} required />
+              </div>
               <div>
                 <label className="label" htmlFor="prof-name">Full Name</label>
                 <input id="prof-name" name="full_name" className="input-field" value={profile.full_name} onChange={handleChange} required />

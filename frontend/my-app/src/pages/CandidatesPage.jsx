@@ -118,10 +118,10 @@ export default function CandidatesPage() {
           ) : (
             <div className="divide-y divide-hairline">
               {candidates.map((c) => {
-                const application = allApplications.find((app) => app.resume_id === c.resume_id && app.job_id === selectedJob);
+                const application = allApplications.find((app) => app.candidate_id === c.candidate_id && app.job_id === selectedJob);
                 const completedInterview = getCompletedInterview({ resume_id: c.resume_id, job_id: selectedJob });
                 return (
-                <div key={c.resume_id} className="flex items-center justify-between px-6 py-4 hover:bg-soft-stone/30 transition-colors">
+                <div key={c.resume_id || c.candidate_id} className="flex items-center justify-between px-6 py-4 hover:bg-soft-stone/30 transition-colors">
                   <div className="flex items-center gap-4 min-w-0 flex-1">
                     <div className={`w-10 h-10 rounded-sm flex items-center justify-center font-display text-lg font-semibold shrink-0 ${c.rank <= 3
                       ? 'bg-coral text-on-dark'
@@ -184,7 +184,11 @@ export default function CandidatesPage() {
                                 onClick={async (e) => {
                                   e.preventDefault();
                                   try {
-                                    await updateApplicationStatusByResume(c.resume_id, { status: 'interview_scheduled' });
+                                    if (application) {
+                                      await updateApplicationStatus(application.id, { status: 'interview_scheduled' });
+                                    } else {
+                                      await updateApplicationStatusByResume(c.resume_id, { status: 'interview_scheduled' });
+                                    }
                                     toast.success('Application approved! Redirecting to Calendar...');
                                   } catch (err) {
                                     if (err.response?.status === 404) {
@@ -317,7 +321,11 @@ export default function CandidatesPage() {
                             onClick={async (e) => {
                               e.preventDefault();
                               try {
-                                await updateApplicationStatusByResume(app.resume_id, { status: 'interview_scheduled' });
+                                if (app) {
+                                  await updateApplicationStatus(app.id, { status: 'interview_scheduled' });
+                                } else {
+                                  await updateApplicationStatusByResume(app.resume_id, { status: 'interview_scheduled' });
+                                }
                                 toast.success('Application approved! Redirecting to Calendar...');
                               } catch (err) {
                                 if (err.response?.status === 404) {

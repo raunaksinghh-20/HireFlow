@@ -40,7 +40,7 @@ export default function CandidatesPage() {
   };
 
   return (
-    <div className="page-container max-w-5xl">
+    <div className="page-container">
       <ScrollReveal>
         <h1 className="section-title mb-2">Ranked Candidates</h1>
         <p className="text-neutral-500 text-lg mb-8">Select a job to view AI-scored applicants.</p>

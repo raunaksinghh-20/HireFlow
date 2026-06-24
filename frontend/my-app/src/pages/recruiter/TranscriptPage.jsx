@@ -20,19 +20,19 @@ export default function TranscriptPage() {
   }, [interviewId]);
 
   if (loading) return (
-    <div className="page-container max-w-4xl mx-auto">
+    <div className="page-container">
       <SkeletonLoader variant="text" count={6} />
     </div>
   );
 
   if (!transcript) return (
-    <div className="page-container max-w-4xl mx-auto">
+    <div className="page-container">
       <div className="editorial-card text-center py-20 text-neutral-500 font-medium">Transcript unavailable.</div>
     </div>
   );
 
   return (
-    <div className="page-container max-w-4xl mx-auto">
+    <div className="page-container">
       <ScrollReveal>
         <div className="border-b-4 border-brand-black pb-8 mb-12">
           <div className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-4">Official Record</div>
