@@ -1,6 +1,6 @@
-# HireFlow-AI
+# HireFlow AI
 
-HireFlow-AI is an end-to-end AI recruitment platform for candidates, recruiters, and HR teams. It supports job posting, resume upload and parsing, deterministic ATS scoring, candidate ranking, adaptive AI interviews, transcript storage, multi-agent interview evaluation, application tracking, scheduling, and analytics.
+HireFlow AI is an end-to-end AI recruitment platform for candidates, recruiters, and HR teams. It supports job posting, resume upload and parsing, deterministic ATS scoring, candidate ranking, adaptive AI interviews, transcript storage, multi-agent interview evaluation, application tracking, scheduling, and analytics.
 
 ## Features
 
@@ -10,13 +10,14 @@ HireFlow-AI is an end-to-end AI recruitment platform for candidates, recruiters,
 - **Deterministic ATS scoring**: Candidates are scored with an explainable formula based on required skills, JD keyword overlap, and years of experience.
 - **Candidate ranking**: Scored resumes are ranked by `ranking_score` for each job.
 - **Application tracking**: Candidates can apply to jobs, while recruiters/HR can review and update application status.
-- **Adaptive AI interviews**: Gemini generates interview questions using resume text, job description, ATS score, skill gaps, matched skills, and conversation history.
+- **Adaptive AI interviews**: LLMs generate interview questions using resume text, job description, ATS score, skill gaps, matched skills, and conversation history.
 - **Vectorless RAG context & Shared Interview State**: Supports both legacy prompt-stuffing and the new structured mode (`USE_STRUCTURED_CONTEXT=True`) featuring topic-guided context filtering, rolling summarizations, and verified claims ledgers.
 - **Strict Token Budgeting**: The context assembly layer dynamically trims old turns to respect a strict 2,000-token budget.
-- **Multi-Provider LLM Fallback**: A robust failover chain rotates through multiple providers in order (Gemini models -> Groq -> OpenRouter -> Cerebras -> Cohere) to handle rate limits and service spikes transparently.
+- **Multi-Provider LLM Fallback**: A robust failover chain rotates through multiple providers in order (Gemini → Groq → OpenRouter → Cerebras → Cohere) to handle rate limits and service spikes transparently.
 - **Voice interview support**: Deepgram powers speech-to-text for candidate answers and text-to-speech for AI questions.
 - **Transcript persistence**: Interview turns are saved in PostgreSQL as JSONB transcript records.
-- **Multi-agent evaluation**: Gemini runs technical, communication, and HR/integrity evaluations, then synthesizes a final recommendation.
+- **Multi-agent evaluation**: LLMs run technical, communication, and HR/integrity evaluations, then synthesize a final recommendation.
+- **Email notifications**: SendGrid/Resend/SMTP integration for interview invitations, completion notices, and reschedule requests.
 - **Analytics**: Recruiter dashboards show aggregate ATS/interview insights; candidates can view personal application and interview performance.
 - **Profile management**: Users can update profile details and upload profile pictures.
 
@@ -24,30 +25,35 @@ HireFlow-AI is an end-to-end AI recruitment platform for candidates, recruiters,
 
 ### Frontend
 
-- React
-- Vite
+- React 19
+- Vite 8
 - Tailwind CSS
-- React Router
-- Zustand
-- Axios
+- React Router v7
+- Zustand (state management)
+- Axios (HTTP client)
 - Lucide Icons
-- Recharts
-- React Hook Form
+- Recharts (analytics charts)
+- React Hook Form + Zod (form validation)
 
 ### Backend
 
 - FastAPI
-- Async SQLAlchemy
+- Async SQLAlchemy + asyncpg
 - PostgreSQL
-- Redis
-- Pydantic
+- Redis (live interview session state)
+- Pydantic + pydantic-settings
 - JWT auth with bcrypt password hashing
 - PyMuPDF with PyPDF2 fallback for resume text extraction
+- LangGraph (interview state machine)
 
 ### AI and Audio
 
-- Google GenAI SDK using `gemini-2.5-flash-lite`
-- Deepgram STT and TTS
+- **Primary**: Google GenAI SDK (Gemini 2.5 Flash Lite → Gemini 2.5 Flash → Gemini 2.5 Pro → Gemini 3.5 Flash → Gemini 3 Flash Preview → Gemini 3.1 Flash Lite → Gemini 3.1 Pro Preview)
+- **Fallback 1**: Groq (Llama 3.3 70B → Llama 3.1 8B → Gemma 2 9B → Mixtral 8x7B)
+- **Fallback 2**: OpenRouter (Llama 3.3 70B → Mistral 7B → Gemma 2 9B)
+- **Fallback 3**: Cerebras (Llama 3.3 70B → Llama 4 Scout 17B)
+- **Fallback 4**: Cohere (Command R)
+- **Voice**: Deepgram STT and TTS
 
 ## Architecture
 
@@ -70,9 +76,9 @@ Redis
 
 FastAPI backend
         |
-        | Prompted interview and evaluation calls
+        | Multi-provider fallback chain
         v
-Google Gemini
+Gemini → Groq → OpenRouter → Cerebras → Cohere
 
 FastAPI backend
         |
@@ -87,33 +93,36 @@ Deepgram
 backend/app/
   api/          FastAPI route handlers
   config/       settings and database setup
-  core/         prompts, AI interview flow, RAG context, Redis sessions, security
+  core/         prompts, AI interview flow, RAG context, LLM client, Redis sessions, security
   models/       SQLAlchemy database models
   schemas/      Pydantic request/response schemas
-  services/     business logic
+  services/     business logic (ATS, auth, evaluation, interview, resume, notifications)
   utils/        file upload helpers
 ```
 
 Important files:
 
-- `backend/app/main.py`: FastAPI app setup, CORS, static uploads, router registration.
+- `backend/app/main.py`: FastAPI app setup, CORS, static uploads, router registration, global exception handler.
 - `backend/app/models/db_models.py`: Database models for users, jobs, resumes, applications, interviews, transcripts, evaluations, and scheduled interviews.
 - `backend/app/services/ats_service.py`: Deterministic ATS scoring and ranking formula.
-- `backend/app/core/rag_builder.py`: Vectorless RAG context assembly.
-- `backend/app/core/interview_graph.py`: Gemini-powered adaptive interview logic.
-- `backend/app/core/prompt_templates.py`: Centralized prompt templates.
+- `backend/app/core/llm_client.py`: Multi-provider LLM client with automatic fallback chain.
+- `backend/app/core/rag_builder.py`: Vectorless RAG context assembly for interview and evaluation prompts.
+- `backend/app/core/context_builder.py`: Structured context builder with topic-guided filtering and token budgeting.
+- `backend/app/core/interview_graph.py`: LangGraph-powered adaptive interview state machine.
+- `backend/app/core/prompt_templates.py`: Centralized prompt templates for all LLM calls.
 - `backend/app/services/evaluation_service.py`: Multi-agent evaluation and consensus synthesis.
 - `backend/app/core/session_manager.py`: Redis-backed live interview sessions.
+- `backend/app/services/notification_service.py`: Email notifications via SendGrid, Resend, or SMTP.
 
 ## Frontend Structure
 
 ```text
 frontend/my-app/src/
   api/          Axios API wrappers
-  components/   layout and reusable UI components
-  hooks/        frontend interaction hooks
+  components/   layout (Navbar, ProtectedRoute) and reusable UI components
+  hooks/        animation hooks (useCountUp)
   pages/        shared, recruiter, and candidate pages
-  store/        Zustand auth/interview stores
+  store/        Zustand auth and interview stores
 ```
 
 Important files:
@@ -121,12 +130,13 @@ Important files:
 - `frontend/my-app/src/App.jsx`: Application routes and role-based navigation.
 - `frontend/my-app/src/api/axios.js`: Axios client with JWT injection and 401 handling.
 - `frontend/my-app/src/store/authStore.js`: Auth state persisted in localStorage.
+- `frontend/my-app/src/store/interviewStore.js`: Live interview session state.
 - `frontend/my-app/src/pages/candidate/InterviewRoom.jsx`: Text and voice interview UI.
-- `frontend/my-app/src/components/layout/ProtectedRoute.jsx`: Frontend route guard.
+- `frontend/my-app/src/components/layout/ProtectedRoute.jsx`: Frontend route guard with role-based access.
 
 ## ATS Scoring
 
-ATS scoring is deterministic and explainable. It does not call Gemini.
+ATS scoring is deterministic and explainable. It does not call any LLM.
 
 ```text
 ranking_score =
@@ -151,11 +161,11 @@ Candidates are ranked per job by `ranking_score DESC`.
 
 The system features a dual-mode Vectorless RAG architecture, selectable via the `USE_STRUCTURED_CONTEXT` configuration setting:
 
-### A. Legacy Vectorless RAG (`USE_STRUCTURED_CONTEXT: False`)
+### A. Legacy Vectorless RAG (`USE_STRUCTURED_CONTEXT=False`)
 - Assembles prompt contexts directly from raw resume text, job descriptions, ATS scores, and raw conversation history.
-- Context is fed linearly into the LLM prompt.
+- Context is fed linearly into the LLM prompt via `rag_builder.py`.
 
-### B. Shared Interview State & Topic-Guided RAG (`USE_STRUCTURED_CONTEXT: True`)
+### B. Shared Interview State & Topic-Guided RAG (`USE_STRUCTURED_CONTEXT=True`)
 - **Document Pre-Structuring**: Parses uploaded resumes and created jobs into structured JSON schemas (`StructuredResume` & `StructuredJD`) via Gemini extraction.
 - **Topic-Guided Filtering**: Dynamically retrieves candidate projects, skills, and responsibilities that correspond *only* to the current active interview topic, avoiding context pollution.
 - **Claims Ledger**: Tracks verified candidate claims and updates capability assessments to prevent rotating models from asking redundant questions.
@@ -170,17 +180,18 @@ Embeddings are not currently used. A future version could add `pgvector`, Pineco
 2. Backend verifies that ATS scoring has already been run.
 3. Backend creates an `Interview` record.
 4. Live interview state is stored in Redis with a 1-hour TTL.
-5. Gemini generates the first question.
+5. The LLM generates the first question (via the multi-provider fallback chain).
 6. Candidate submits text or voice answers.
-7. Gemini analyzes each answer and chooses a route:
+7. The LLM analyzes each answer and chooses a route:
    - `follow_up`
    - `gap_probe`
    - `challenge`
    - `escalate`
    - `next_topic`
    - `complete`
-8. Gemini generates the next question until max questions or completion.
+8. The LLM generates the next question until max questions or completion.
 9. Transcript turns are persisted in PostgreSQL.
+10. Interview is marked as completed, preventing re-attendance.
 
 ## Evaluation Flow
 
@@ -218,11 +229,12 @@ Implemented:
 - Bcrypt password hashing.
 - Role metadata for `candidate`, `recruiter`, and `hr`.
 - Backend role guard helper for protected actions.
-- Frontend route guards.
+- Frontend route guards with role-based access.
 - CORS allowlist through `ALLOWED_ORIGINS`.
 - PDF-only resume uploads.
 - Resume and avatar file size limits.
 - Environment-based API keys and configuration.
+- Global exception handler for unhandled errors.
 
 Production hardening recommended:
 
@@ -243,8 +255,9 @@ Production hardening recommended:
 - Node.js 18+
 - Python 3.10+
 - Docker and Docker Compose
-- Google Gemini API key
-- Deepgram API key, optional for voice mode
+- Google Gemini API key (required)
+- Deepgram API key (optional, for voice mode)
+- Additional LLM API keys are optional for fallback providers
 
 ### Start PostgreSQL and Redis
 
@@ -275,8 +288,25 @@ DATABASE_URL=postgresql+asyncpg://hireflow_user:hireflow_password@localhost:5433
 REDIS_URL=redis://localhost:6379/0
 SECRET_KEY=replace_with_a_long_random_secret
 ALLOWED_ORIGINS=http://localhost:5173
+
+# Required
 GEMINI_API_KEY=your_gemini_api_key
+
+# Optional — voice mode
 DEEPGRAM_API_KEY=your_deepgram_api_key
+
+# Optional — LLM fallback providers
+GROQ_API_KEY=
+OPENROUTER_API_KEY=
+CEREBRAS_API_KEY=
+COHERE_API_KEY=
+
+# Optional — email notifications
+SENDGRID_API_KEY=
+RESEND_API_KEY=
+
+# Optional — structured context mode (default: False)
+USE_STRUCTURED_CONTEXT=False
 ```
 
 Start the API:
@@ -320,16 +350,17 @@ Recommended production setup:
 - Use managed PostgreSQL.
 - Use managed Redis.
 - Store secrets in the deployment platform secret manager.
-- Replace local disk uploads with object storage.
+- Replace local disk uploads with object storage (S3/GCS).
 - Use Alembic migrations instead of relying on startup `create_all`.
 - Add background workers for resume parsing, evaluation generation, notifications, and analytics refreshes.
 - Add observability for logs, traces, model latency, and token usage.
 
 ## Current Implementation Notes
 
-- The backend currently creates tables on startup using SQLAlchemy metadata.
+- The backend creates tables on startup using SQLAlchemy metadata. Use Alembic for production migrations.
 - Docker Compose currently runs only PostgreSQL and Redis.
 - The ATS scorer is deterministic Python, not LLM-based.
-- The interview and evaluation systems use Gemini.
+- The interview and evaluation systems use a multi-provider LLM fallback chain.
 - The project uses vectorless RAG and does not currently generate embeddings.
 - Voice mode depends on `DEEPGRAM_API_KEY`.
+- A global exception handler catches unhandled errors and returns sanitized 500 responses.

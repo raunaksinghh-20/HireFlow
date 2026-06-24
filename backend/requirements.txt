@@ -14,10 +14,8 @@ python-multipart
 pwdlib[bcrypt]
 python-jose[cryptography]
 python-dotenv
-psycopg2-binary
 langgraph>=0.0.64
 cerebras-cloud-sdk
 groq
 cohere
 openai
-aiosqlite

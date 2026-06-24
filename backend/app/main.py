@@ -1,9 +1,11 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config.settings import settings
 from app.config.database import engine, Base
@@ -36,9 +38,6 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
     logger.info("Database engine disposed")
 
-
-import os
-from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(
     title="HireFlow AI",
@@ -88,10 +87,10 @@ async def health_check():
 
 
 # ── Global Exception Handler ─────────────────────────────────
-# @app.exception_handler(Exception)
-# async def global_exception_handler(request: Request, exc: Exception):
-#     logger.error(f"Unhandled exception: {exc}", exc_info=True)
-#     return JSONResponse(
-#         status_code=500,
-#         content={"detail": "An unexpected error occurred. Please try again."},
-#     )
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An unexpected error occurred. Please try again."},
+    )

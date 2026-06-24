@@ -8,11 +8,11 @@ export default function ProfilePage() {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const login = useAuthStore((s) => s.login);
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  
+
   const [profile, setProfile] = useState({
     username: '',
     full_name: '',
@@ -22,7 +22,7 @@ export default function ProfilePage() {
     experience_years: 0,
     skills: [],
   });
-  
+
   const [skillInput, setSkillInput] = useState('');
 
   useEffect(() => {
@@ -137,8 +137,8 @@ export default function ProfilePage() {
     );
   }
 
-  const avatarUrl = user?.profile_picture 
-    ? `http://localhost:8000${user.profile_picture}` 
+  const avatarUrl = user?.profile_picture
+    ? `http://localhost:8000${user.profile_picture}`
     : null;
 
   return (
@@ -171,7 +171,7 @@ export default function ProfilePage() {
                 <input type="file" accept="image/*" onChange={handlePictureUpload} className="hidden" disabled={uploading} />
               </label>
             </div>
-            
+
             <h3 className="font-display text-card-heading text-primary font-semibold">{profile.full_name}</h3>
             <p className="text-caption text-primary font-medium mt-0.5">@{profile.username}</p>
             <p className="text-caption text-muted mb-4">{user?.email}</p>
@@ -187,7 +187,7 @@ export default function ProfilePage() {
             <h3 className="font-display text-card-heading text-primary border-b border-primary/10 pb-3 mb-4">
               Personal Details
             </h3>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="label" htmlFor="prof-username">Username</label>
@@ -201,7 +201,7 @@ export default function ProfilePage() {
                 <label className="label" htmlFor="prof-phone">Phone Number</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"><Phone className="w-4 h-4" /></span>
-                  <input id="prof-phone" name="phone" className="input-field pl-10" placeholder="+1 (555) 019-2834" value={profile.phone} onChange={handleChange} />
+                  <input id="prof-phone" name="phone" className="input-field pl-10" placeholder="+91 9876543210" value={profile.phone} onChange={handleChange} />
                 </div>
               </div>
             </div>
@@ -237,7 +237,7 @@ export default function ProfilePage() {
                 <input id="prof-skills" className="input-field" placeholder="e.g. React, Python, Product Management" value={skillInput} onChange={(e) => setSkillInput(e.target.value)} />
                 <button type="button" onClick={handleAddSkill} className="btn-secondary px-6">Add</button>
               </div>
-              
+
               <div className="flex flex-wrap gap-2 min-h-[40px] p-3 rounded-sm border border-primary/10 bg-background/50">
                 {profile.skills.length === 0 ? (
                   <span className="text-caption text-muted self-center">No skills added yet</span>
