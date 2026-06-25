@@ -1,7 +1,7 @@
 from uuid import UUID
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -17,6 +17,7 @@ router = APIRouter(tags=["ATS Scoring"])
 @router.post("/ats-score", response_model=ATSScoreResponse)
 async def score_resume(
     payload: ATSScoreRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -63,20 +64,16 @@ async def score_resume(
 
     await db.flush()
 
-    # Trigger email notification
+    # Trigger email notification in background
     from app.services.notification_service import send_screening_completed_email
     if resume.candidate_email:
-        try:
-            send_screening_completed_email(
-                candidate_email=resume.candidate_email,
-                candidate_name=resume.candidate_name,
-                job_title=job.title,
-                ats_score=scoring["ats_score"]
-            )
-        except Exception as e:
-            # Prevent email failure from breaking API response
-            import logging
-            logging.getLogger(__name__).error(f"Failed to send email: {e}")
+        background_tasks.add_task(
+            send_screening_completed_email,
+            candidate_email=resume.candidate_email,
+            candidate_name=resume.candidate_name,
+            job_title=job.title,
+            ats_score=scoring["ats_score"]
+        )
 
     return ATSScoreResponse(
         resume_id=resume.id,
