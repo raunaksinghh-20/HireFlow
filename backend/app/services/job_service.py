@@ -7,7 +7,8 @@ from app.models.db_models import Job
 
 
 async def create_job(db: AsyncSession, owner_id: UUID, title: str, company: str | None,
-                     description: str, required_skills: list, experience_years: int) -> Job:
+                     description: str, required_skills: list, experience_years: int,
+                     vacant_positions: int = 1, application_deadline: datetime | None = None) -> Job:
     """Create a new job posting."""
     try:
         from app.services.resume_parser import parse_jd_to_structured
@@ -22,6 +23,8 @@ async def create_job(db: AsyncSession, owner_id: UUID, title: str, company: str 
         description=description,
         required_skills=required_skills or [],
         experience_years=experience_years,
+        vacant_positions=vacant_positions,
+        application_deadline=application_deadline,
         structured_jd=structured_jd,
     )
     db.add(job)

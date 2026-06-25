@@ -34,7 +34,7 @@ export default function JobsPage() {
         required_skills: skills,
         experience_years: parseInt(form.experience_years) || 0,
         vacant_positions: parseInt(form.vacant_positions) || 1,
-        deadline: form.deadline ? new Date(form.deadline).toISOString() : null,
+        application_deadline: form.deadline ? new Date(form.deadline).toISOString() : null,
       });
       toast.success('Job created successfully!');
       setShowForm(false);
@@ -59,13 +59,13 @@ export default function JobsPage() {
   const handleEdit = (job) => {
     setEditingJob(job);
     setEditForm({
-      title: job.title || '',
+      title: job.title,
       company: job.company || '',
-      description: job.description || '',
-      required_skills: (job.required_skills || []).join(', '),
+      description: job.description,
+      required_skills: job.required_skills?.join(', ') || '',
       experience_years: job.experience_years || 0,
       vacant_positions: job.vacant_positions || 1,
-      deadline: job.deadline ? new Date(job.deadline).toISOString().split('T')[0] : '',
+      deadline: job.application_deadline ? job.application_deadline.split('T')[0] : '',
     });
   };
 
@@ -79,7 +79,7 @@ export default function JobsPage() {
         required_skills: skills,
         experience_years: parseInt(editForm.experience_years) || 0,
         vacant_positions: parseInt(editForm.vacant_positions) || 1,
-        deadline: editForm.deadline ? new Date(editForm.deadline).toISOString() : null,
+        application_deadline: editForm.deadline ? new Date(editForm.deadline).toISOString() : null,
       });
       toast.success('Job updated successfully!');
       setEditingJob(null);

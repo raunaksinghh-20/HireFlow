@@ -29,6 +29,8 @@ async def create_job_endpoint(
         description=payload.description,
         required_skills=payload.required_skills,
         experience_years=payload.experience_years,
+        vacant_positions=payload.vacant_positions,
+        application_deadline=payload.application_deadline,
     )
     return job
 
@@ -66,7 +68,7 @@ async def update_job_endpoint(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update job title, description, skills, or experience."""
+    """Update job title, description, skills, experience, or other details."""
     return await update_job(
         db, job_id, current_user.id,
         title=payload.title,
@@ -74,6 +76,8 @@ async def update_job_endpoint(
         description=payload.description,
         required_skills=payload.required_skills,
         experience_years=payload.experience_years,
+        vacant_positions=payload.vacant_positions,
+        application_deadline=payload.application_deadline,
     )
 
 

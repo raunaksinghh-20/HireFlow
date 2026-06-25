@@ -58,14 +58,18 @@ class JobCreate(BaseModel):
     description: str = Field(min_length=10)
     required_skills: List[str] = Field(default_factory=list)
     experience_years: int = Field(default=0, ge=0)
+    vacant_positions: int = Field(default=1, ge=1)
+    application_deadline: Optional[datetime] = None
 
 
 class JobUpdate(BaseModel):
-    title: Optional[str] = None
+    title: Optional[str] = Field(None, min_length=1)
     company: Optional[str] = None
-    description: Optional[str] = None
+    description: Optional[str] = Field(None, min_length=10)
     required_skills: Optional[List[str]] = None
-    experience_years: Optional[int] = None
+    experience_years: Optional[int] = Field(None, ge=0)
+    vacant_positions: Optional[int] = Field(None, ge=1)
+    application_deadline: Optional[datetime] = None
 
 
 class JobOut(BaseModel):

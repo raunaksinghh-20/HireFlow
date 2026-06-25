@@ -2,6 +2,7 @@ from uuid import UUID
 from datetime import datetime, timezone
 from typing import List
 
+import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -644,7 +645,14 @@ async def create_evaluation(
         raw_llm_response={"raw": eval_result.get("raw_llm_response", "")},
     )
     db.add(evaluation)
-    await db.flush()
+    try:
+        await db.flush()
+    except sqlalchemy.exc.IntegrityError:
+        await db.rollback()
+        # Another request beat us to it, fetch the evaluation it created
+        existing = (await db.execute(select(Evaluation).where(Evaluation.interview_id == interview.id))).scalars().first()
+        if existing:
+            evaluation = existing
 
     # Trigger recruiter notification
     from app.services.notification_service import send_interview_completed_email

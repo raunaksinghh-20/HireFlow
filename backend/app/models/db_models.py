@@ -83,6 +83,8 @@ class Job(Base):
     description = Column(Text, nullable=False)
     required_skills = Column(JSONB, default=list)
     experience_years = Column(Integer, default=0)
+    vacant_positions = Column(Integer, default=1)
+    application_deadline = Column(DateTime(timezone=True), nullable=True)
     structured_jd = Column(JSONB)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
