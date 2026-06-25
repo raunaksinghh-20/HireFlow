@@ -268,10 +268,10 @@ async def _call_cohere(prompt: str, temperature: Optional[float] = None) -> str:
 
 # Ordered list of provider callables
 _PROVIDERS = [
-    ("Gemini", _call_gemini),
     ("Groq", _call_groq),
-    ("OpenRouter", _call_openrouter),
     ("Cerebras", _call_cerebras),
+    ("Gemini", _call_gemini),
+    ("OpenRouter", _call_openrouter),
     ("Cohere", _call_cohere),
 ]
 

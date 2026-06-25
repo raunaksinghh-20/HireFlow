@@ -26,7 +26,7 @@ export default function InterviewRoom() {
   const {
     sessionToken, interviewId, candidateName, jobTitle, turns,
     difficultyLevel, isComplete, questionsRemaining,
-    isLoading, startSession, addAnswer, processResponse, setLoading, completeInterview,
+    isLoading, startSession, addAnswer, updateLastCandidateAnswer, processResponse, setLoading, completeInterview,
   } = useInterviewStore();
 
   const resumeId = searchParams.get('resumeId');
@@ -138,6 +138,11 @@ export default function InterviewRoom() {
     try {
       addAnswer("(Voice answer submitted...)");
       const { data } = await submitVoiceAnswer(formData);
+      
+      if (data.transcribed_text) {
+        updateLastCandidateAnswer(data.transcribed_text);
+      }
+      
       processResponse(data);
       setTurnCount((prev) => prev + 1);
       if (data.interview_complete) toast.success('Complete!');

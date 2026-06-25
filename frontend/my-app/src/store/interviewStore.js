@@ -32,6 +32,18 @@ const useInterviewStore = create((set) => ({
       turns: [...state.turns, { role: 'candidate', content: answer }],
     })),
 
+  updateLastCandidateAnswer: (text) =>
+    set((state) => {
+      const newTurns = [...state.turns];
+      for (let i = newTurns.length - 1; i >= 0; i--) {
+        if (newTurns[i].role === 'candidate') {
+          newTurns[i].content = text;
+          break;
+        }
+      }
+      return { turns: newTurns };
+    }),
+
   processResponse: (response) =>
     set((state) => {
       const newTurns = [...state.turns];

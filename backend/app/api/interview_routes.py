@@ -475,6 +475,9 @@ async def submit_voice_answer(
     state["conversation_history"].append(question_turn)
     state["current_question_type"] = next_q["question_type"]
 
+    # 3. Generate TTS for the next question concurrently with DB operations
+    tts_task = asyncio.create_task(generate_tts(next_q["question"]))
+
     # Update Redis
     await session_manager.update_session(session_token, state)
 
@@ -491,8 +494,8 @@ async def submit_voice_answer(
 
     questions_remaining = state["max_questions"] - state["question_count"]
 
-    # 3. Generate TTS for the next question
-    tts_bytes = await generate_tts(next_q["question"])
+    # Wait for TTS generation to complete (if it hasn't already)
+    tts_bytes = await tts_task
     audio_base64 = base64.b64encode(tts_bytes).decode("utf-8")
 
     return SubmitAnswerResponse(

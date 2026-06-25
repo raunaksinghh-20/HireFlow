@@ -39,7 +39,7 @@ export default function InterviewPage() {
   const {
     sessionToken, interviewId, candidateName, jobTitle, turns,
     difficultyLevel, isComplete, questionsRemaining,
-    isLoading, startSession, addAnswer, processResponse, setLoading, completeInterview,
+    isLoading, startSession, addAnswer, updateLastCandidateAnswer, processResponse, setLoading, completeInterview,
   } = useInterviewStore();
 
   const resumeId = searchParams.get('resumeId');
@@ -216,6 +216,11 @@ export default function InterviewPage() {
     try {
       addAnswer('(Voice answer submitted...)');
       const { data } = await submitVoiceAnswer(formData);
+      
+      if (data.transcribed_text) {
+        updateLastCandidateAnswer(data.transcribed_text);
+      }
+      
       processResponse(data);
       setTurnCount((prev) => prev + 1);
 
