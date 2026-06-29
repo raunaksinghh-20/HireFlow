@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     # ── Email Settings ───────────────────────────────────────────
     SENDGRID_API_KEY: str = ""
     RESEND_API_KEY: str = ""
+    BREVO_API_KEY: str = ""
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
@@ -37,6 +38,7 @@ class Settings(BaseSettings):
     MAX_RESUME_SIZE_MB: int = 10
     SUPABASE_URL: str = ""
     SUPABASE_KEY: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
     SUPABASE_BUCKET_RESUMES: str = "resumes"
     SUPABASE_BUCKET_AVATARS: str = "avatars"
 

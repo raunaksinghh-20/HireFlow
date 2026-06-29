@@ -40,15 +40,6 @@ async def score_resume(
     if not job:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
 
-    # Calculate ATS score
-    scoring = calculate_ats_score(resume, job)
-
-    # Update resume record
-    resume.ats_score = scoring["ats_score"]
-    resume.skill_gaps = scoring["skill_gaps"]
-    resume.matched_skills = scoring["matched_skills"]
-    resume.ranking_score = scoring["ranking_score"]
-    
     # Also update Application cached ats_score and resume_id if application exists
     from app.models.db_models import Application
     app_result = await db.execute(
@@ -58,6 +49,16 @@ async def score_resume(
         )
     )
     application = app_result.scalars().first()
+
+    # Calculate ATS score
+    scoring = calculate_ats_score(resume, job)
+
+    # Update resume record
+    resume.ats_score = scoring["ats_score"]
+    resume.skill_gaps = scoring["skill_gaps"]
+    resume.matched_skills = scoring["matched_skills"]
+    resume.ranking_score = scoring["ranking_score"]
+    
     if application:
         application.ats_score = scoring["ats_score"]
         application.resume_id = resume.id

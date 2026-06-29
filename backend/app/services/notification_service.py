@@ -24,6 +24,16 @@ LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 LOG_FILE_PATH = LOGS_DIR / "email_notifications.log"
 
+def _get_ssl_context():
+    """Create a secure SSL context using certifi if available, falling back to unverified context if needed."""
+    import ssl
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        return ssl._create_unverified_context()
+
+
 def _log_email_locally(to_email: str, subject: str, text_content: str, html_content: str):
     """Fallback: Log email contents to a local log file for developer debugging."""
     try:
@@ -69,7 +79,7 @@ def _send_via_smtp(to_email: str, subject: str, text_content: str, html_content:
         logger.info(f"Email successfully sent via SMTP to {to_email}")
         return True
     except Exception as e:
-        logger.error(f"SMTP email sending failed to {to_email}: {e}")
+        logger.warning(f"SMTP email sending failed to {to_email}: {e}. Falling back to next method.")
         return False
 
 
@@ -99,7 +109,7 @@ def _send_via_resend(to_email: str, subject: str, html_content: str) -> bool:
             method="POST"
         )
         
-        with urllib.request.urlopen(req) as response:
+        with urllib.request.urlopen(req, context=_get_ssl_context()) as response:
             if response.status in (200, 201):
                 logger.info(f"Email sent via Resend API to {to_email}")
                 return True
@@ -133,7 +143,7 @@ def _send_via_sendgrid(to_email: str, subject: str, html_content: str) -> bool:
             method="POST"
         )
         
-        with urllib.request.urlopen(req) as response:
+        with urllib.request.urlopen(req, context=_get_ssl_context()) as response:
             if response.status in (200, 202):
                 logger.info(f"Email sent via SendGrid API to {to_email}")
                 return True
@@ -144,34 +154,76 @@ def _send_via_sendgrid(to_email: str, subject: str, html_content: str) -> bool:
         return False
 
 
+def _send_via_brevo(to_email: str, subject: str, text_content: str, html_content: str) -> bool:
+    """Send email via Brevo REST API using urllib."""
+    try:
+        url = "https://api.brevo.com/v3/smtp/email"
+        headers = {
+            "api-key": settings.BREVO_API_KEY,
+            "content-type": "application/json",
+            "accept": "application/json"
+        }
+        
+        payload = {
+            "sender": {"name": "HireFlow AI", "email": settings.SMTP_FROM},
+            "to": [{"email": to_email}],
+            "subject": subject,
+            "htmlContent": html_content,
+            "textContent": text_content
+        }
+        
+        req = urllib.request.Request(
+            url, 
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method="POST"
+        )
+        
+        with urllib.request.urlopen(req, context=_get_ssl_context()) as response:
+            if response.status in (200, 201, 202):
+                logger.info(f"Email sent via Brevo API to {to_email}")
+                return True
+            
+        return False
+    except Exception as e:
+        logger.error(f"Brevo API email sending failed to {to_email}: {e}")
+        return False
+
+
 def send_email(to_email: str, subject: str, text_content: str, html_content: str):
     """
-    Core dispatcher. Checks configuration and sends email using SendGrid, Resend, SMTP,
-    or falls back to local logging.
+    Core dispatcher. Checks configuration and sends email using Brevo, SendGrid, Resend,
+    SMTP, or falls back to local logging.
     """
     if not to_email:
         logger.warning("No recipient email provided, skipping notification.")
         return
 
-    # 1. Resend API
+    # 1. Brevo API
+    if settings.BREVO_API_KEY:
+        success = _send_via_brevo(to_email, subject, text_content, html_content)
+        if success:
+            return
+
+    # 2. Resend API
     if settings.RESEND_API_KEY:
         success = _send_via_resend(to_email, subject, html_content)
         if success:
             return
 
-    # 2. SendGrid API
+    # 3. SendGrid API
     if settings.SENDGRID_API_KEY:
         success = _send_via_sendgrid(to_email, subject, html_content)
         if success:
             return
 
-    # 3. SMTP
+    # 4. SMTP
     if settings.SMTP_HOST:
         success = _send_via_smtp(to_email, subject, text_content, html_content)
         if success:
             return
 
-    # 4. Fallback to file logging if no active configuration
+    # 5. Fallback to file logging if no active configuration
     _log_email_locally(to_email, subject, text_content, html_content)
 
 

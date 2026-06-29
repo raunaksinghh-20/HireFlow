@@ -11,10 +11,11 @@ logger = logging.getLogger(__name__)
 
 
 def get_supabase_client():
-    if settings.SUPABASE_URL and settings.SUPABASE_KEY:
+    if settings.SUPABASE_URL and (settings.SUPABASE_SERVICE_ROLE_KEY or settings.SUPABASE_KEY):
         try:
             from supabase import create_client, Client
-            return create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+            key = settings.SUPABASE_SERVICE_ROLE_KEY if settings.SUPABASE_SERVICE_ROLE_KEY else settings.SUPABASE_KEY
+            return create_client(settings.SUPABASE_URL, key)
         except ImportError:
             logger.warning("Supabase SDK not installed. Run: pip install supabase")
             return None
